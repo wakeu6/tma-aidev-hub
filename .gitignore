@@ -24,3 +24,14 @@ out/
 # Cloudflare & Tunnels
 cloudflared.exe
 *.log
+
+# Remotion & Media Temporary Files
+video-shorts/chrome-profile/
+video-shorts/build/
+video-shorts/temp_audio/
+video-shorts/*.png
+video-shorts/*.mp3
+temp_tts_segments/
+chrome-profile/
+out/
+video-shorts/out/

@@ -1,0 +1,181 @@
+{
+  "lastCycle": 19,
+  "lastRunAt": "2026-10-13T19:03:01.757Z",
+  "history": [
+    {
+      "cycle": 19,
+      "topic": "Gemini Flash 3.8: квантовый скачок скорости и бесконечный контекст",
+      "stylePreset": "minimalist_tech",
+      "timestamp": "2026-10-13T19:03:01.757Z",
+      "status": "SUCCESS",
+      "url": "https://youtube.com/shorts/tQExfniNuE4",
+      "error": null
+    },
+    {
+      "cycle": 18,
+      "topic": "Claude Sonnet 5.5 против GPT Astra 6: кто лучший программист планеты?",
+      "stylePreset": "dark_gritty",
+      "timestamp": "2026-10-13T13:45:15.303Z",
+      "status": "SUCCESS",
+      "url": "https://youtube.com/shorts/TnZ1NCLf3Hs",
+      "error": null
+    },
+    {
+      "cycle": 17,
+      "topic": "Docker + AI: контейнеризация за 30 секунд",
+      "stylePreset": "minimalist_tech",
+      "timestamp": "2026-10-12T13:04:18.427Z",
+      "status": "SUCCESS",
+      "url": "https://youtube.com/shorts/dO2OSgcX4Sw",
+      "error": null
+    },
+    {
+      "cycle": 16,
+      "topic": "Скрытый режим мышления в Claude 3.7: гибридный интеллект",
+      "stylePreset": "street_grunge",
+      "timestamp": "2026-10-12T07:14:49.581Z",
+      "status": "SUCCESS",
+      "url": "https://youtube.com/shorts/NAIgktA0a74",
+      "error": null
+    },
+    {
+      "cycle": 15,
+      "topic": "Prompt Injection в коде: как хакают AI-ассистентов",
+      "stylePreset": "y2k_retro",
+      "timestamp": "2026-10-12T01:03:29.669Z",
+      "status": "SUCCESS",
+      "url": "https://youtube.com/shorts/V7Q1VVnmRbM",
+      "error": null
+    },
+    {
+      "cycle": 14,
+      "topic": "Топ локальных LLM для кода в 2026 году",
+      "stylePreset": "dark_gritty",
+      "timestamp": "2026-10-11T19:04:44.675Z",
+      "status": "SUCCESS",
+      "url": "https://youtube.com/shorts/6IQOqMUcpkk",
+      "error": null
+    },
+    {
+      "cycle": 13,
+      "topic": "Supabase + Lovable: фуллстек за 1 промпт",
+      "stylePreset": "minimalist_tech",
+      "timestamp": "2026-10-11T13:03:12.348Z",
+      "status": "SUCCESS",
+      "url": "https://youtube.com/shorts/dW6AXBgqU94",
+      "error": null
+    },
+    {
+      "cycle": 12,
+      "topic": "Claude Code в терминале: автономный агент без мышки",
+      "stylePreset": "street_grunge",
+      "timestamp": "2026-10-11T07:03:53.618Z",
+      "status": "SUCCESS",
+      "url": "https://youtube.com/shorts/Iu_IBNXM-fw",
+      "error": null
+    },
+    {
+      "cycle": 11,
+      "topic": "Claude 3.7 против GPT-4.5: битва нейросетей за код",
+      "stylePreset": "y2k_retro",
+      "timestamp": "2026-10-11T01:02:59.762Z",
+      "status": "SUCCESS",
+      "url": "https://youtube.com/shorts/qaciqkeeeS8",
+      "error": null
+    },
+    {
+      "cycle": 10,
+      "topic": "AI-ревью кода в GitHub: бот, который ловит уязвимости",
+      "stylePreset": "dark_gritty",
+      "timestamp": "2026-10-10T19:03:05.808Z",
+      "status": "SUCCESS",
+      "url": "https://youtube.com/shorts/a4YR5n-CemM",
+      "error": null
+    },
+    {
+      "cycle": 9,
+      "topic": "v0 против Bolt.new: генерация веб-приложений за 60 секунд",
+      "stylePreset": "minimalist_tech",
+      "timestamp": "2026-10-10T13:03:36.224Z",
+      "status": "SUCCESS",
+      "url": "https://youtube.com/shorts/ZDQMaGNPjSM",
+      "error": null
+    },
+    {
+      "cycle": 8,
+      "topic": "Windsurf против Cursor: битва AI-редакторов кодинга",
+      "stylePreset": "street_grunge",
+      "timestamp": "2026-10-10T07:03:18.885Z",
+      "status": "SUCCESS",
+      "url": "https://youtube.com/shorts/6neOglUPifw",
+      "error": null
+    },
+    {
+      "cycle": 7,
+      "topic": "MCP протокол: суперсила AI-ассистентов в 2026 году",
+      "stylePreset": "y2k_retro",
+      "timestamp": "2026-10-10T01:03:51.268Z",
+      "status": "SUCCESS",
+      "url": "https://youtube.com/shorts/fnjAL6Zk-aM",
+      "error": null
+    },
+    {
+      "cycle": 6,
+      "topic": "DeepSeek R1 локально: бесплатный AI-напарник без подписок",
+      "stylePreset": "dark_gritty",
+      "timestamp": "2026-10-09T19:02:20.575Z",
+      "status": "SUCCESS",
+      "url": "https://youtube.com/shorts/9NWOlARE7iM",
+      "error": null
+    },
+    {
+      "cycle": 5,
+      "topic": "Топ-3 инструмента AI-разработки в 2026 году",
+      "stylePreset": "minimalist_tech",
+      "timestamp": "2026-10-09T13:05:43.603Z",
+      "status": "SUCCESS",
+      "url": "https://youtube.com/shorts/bhW_R-xtJFA",
+      "error": null
+    },
+    {
+      "cycle": 4,
+      "topic": "Claude 3.7 Sonnet: гибридное мышление в терминале",
+      "stylePreset": "street_grunge",
+      "timestamp": "2026-10-09T09:25:19.787Z",
+      "status": "SUCCESS",
+      "url": "https://youtube.com/shorts/FpTlY2729ZE",
+      "error": null
+    },
+    {
+      "cycle": 3,
+      "topic": "Vibe Coding: как один промпт заменяет 3 часа работы",
+      "timestamp": "2026-10-09T07:13:40.391Z",
+      "status": "SUCCESS",
+      "url": "https://youtube.com/shorts/FipkPl8nR5M",
+      "error": null
+    },
+    {
+      "cycle": 3,
+      "topic": "Vibe Coding: как один промпт заменяет 3 часа работы",
+      "timestamp": "2026-10-09T07:04:34.985Z",
+      "status": "FAILED",
+      "url": null,
+      "error": "Command failed: node \"C:\\Users\\novoz\\Desktop\\youtube shorts\\video-shorts\\upload_youtube.mjs\"\n[Uploader] FAILED: page.goto: net::ERR_CONNECTION_RESET at https://studio.youtube.com/\nCall log:\n\u001b[2m  - navigating to \"https://studio.youtube.com/\", waiting until \"networkidle\"\u001b[22m\n\n"
+    },
+    {
+      "cycle": 2,
+      "topic": "3 скрытых правила в .cursorrules для чистого кода",
+      "timestamp": "2026-10-08T19:38:07.013Z",
+      "status": "SUCCESS",
+      "url": "https://youtube.com/shorts/hF__rs-j79Y",
+      "error": null
+    },
+    {
+      "cycle": 1,
+      "topic": "Cursor + Claude Code: как писать продакшн за вечер",
+      "timestamp": "2026-10-09T00:20:00.000Z",
+      "status": "SUCCESS",
+      "url": "https://youtube.com/shorts/z3qvRtViJp8"
+    }
+  ]
+}

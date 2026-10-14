@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+  <defs>
+    <radialGradient id="bgGlow_4" cx="50%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.28"/>
+      <stop offset="60%" stop-color="#000000" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#05060A" stop-opacity="1"/>
+    </radialGradient>
+    <pattern id="grid_4" width="70" height="70" patternUnits="userSpaceOnUse">
+      <path d="M 70 0 L 0 0 0 70" fill="none" stroke="#FFFFFF" stroke-opacity="0.04" stroke-width="1"/>
+    </pattern>
+    <filter id="cardGlow_4">
+      <feGaussianBlur stdDeviation="20" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Ambient Backdrop -->
+  <rect width="1080" height="1920" fill="#05060A"/>
+  <rect width="1080" height="1920" fill="url(#bgGlow_4)"/>
+  <rect width="1080" height="1920" fill="url(#grid_4)"/>
+
+  <!-- Centered Glass Card with High Depth-of-Field Contrast -->
+  <g transform="translate(100, 520)">
+    <rect width="880" height="840" rx="36" fill="#0B0F17" fill-opacity="0.88" stroke="#00F0FF" stroke-width="2" stroke-opacity="0.45" filter="url(#cardGlow_4)"/>
+    <circle cx="50" cy="50" r="12" fill="#FF5F56"/>
+    <circle cx="85" cy="50" r="12" fill="#FFBD2E"/>
+    <circle cx="120" cy="50" r="12" fill="#27C93F"/>
+    <text x="440" y="58" font-family="monospace" font-size="20" fill="#00F0FF" text-anchor="middle">GOOGLE VEO NEURAL 9:16 // SCENE 5 — DARK / GRITTY STORYTELLING</text>
+    <line x1="0" y1="90" x2="880" y2="90" stroke="#1F2937" stroke-width="1.5"/>
+
+    
+      <circle cx="440" cy="270" r="90" fill="none" stroke="#00F0FF" stroke-width="6"/>
+      <path d="M 390 270 L 425 305 L 495 235" fill="none" stroke="#10B981" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="440" y="430" font-family="monospace" font-size="38" font-weight="bold" fill="#FFFFFF" text-anchor="middle">PRODUCTION READY</text>
+      <text x="440" y="490" font-family="monospace" font-size="26" fill="#9CA3AF" text-anchor="middle">Dev Ops, Tests &amp; Logic Verified</text>
+      <rect x="140" y="550" width="600" height="90" rx="45" fill="#00F0FF" fill-opacity="0.15" stroke="#00F0FF" stroke-width="2"/>
+      <text x="440" y="605" font-family="monospace" font-size="28" fill="#00F0FF" font-weight="bold" text-anchor="middle">JOIN VIBE CODING REVOLUTION</text>
+    
+  </g>
+</svg>

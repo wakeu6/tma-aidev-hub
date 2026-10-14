@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+  <defs>
+    <radialGradient id="bgGlow_3" cx="50%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.28"/>
+      <stop offset="60%" stop-color="#000000" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#05060A" stop-opacity="1"/>
+    </radialGradient>
+    <pattern id="grid_3" width="70" height="70" patternUnits="userSpaceOnUse">
+      <path d="M 70 0 L 0 0 0 70" fill="none" stroke="#FFFFFF" stroke-opacity="0.04" stroke-width="1"/>
+    </pattern>
+    <filter id="cardGlow_3">
+      <feGaussianBlur stdDeviation="20" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Ambient Backdrop -->
+  <rect width="1080" height="1920" fill="#05060A"/>
+  <rect width="1080" height="1920" fill="url(#bgGlow_3)"/>
+  <rect width="1080" height="1920" fill="url(#grid_3)"/>
+
+  <!-- Centered Glass Card with High Depth-of-Field Contrast -->
+  <g transform="translate(100, 520)">
+    <rect width="880" height="840" rx="36" fill="#0B0F17" fill-opacity="0.88" stroke="#00F0FF" stroke-width="2" stroke-opacity="0.45" filter="url(#cardGlow_3)"/>
+    <circle cx="50" cy="50" r="12" fill="#FF5F56"/>
+    <circle cx="85" cy="50" r="12" fill="#FFBD2E"/>
+    <circle cx="120" cy="50" r="12" fill="#27C93F"/>
+    <text x="440" y="58" font-family="monospace" font-size="20" fill="#00F0FF" text-anchor="middle">GOOGLE VEO NEURAL 9:16 // SCENE 4 — DARK / GRITTY STORYTELLING</text>
+    <line x1="0" y1="90" x2="880" y2="90" stroke="#1F2937" stroke-width="1.5"/>
+
+    
+      <text x="60" y="150" font-family="monospace" font-size="32" fill="#00F0FF">SWE-BENCH 2026 BENCHMARK</text>
+      <!-- Bars -->
+      <text x="60" y="240" font-family="monospace" font-size="24" fill="#E5E7EB">Claude Sonnet 5.5 / GPT Astra 6</text>
+      <rect x="60" y="260" width="720" height="45" rx="8" fill="#00F0FF"/>
+      <text x="750" y="292" font-family="monospace" font-size="24" fill="#00F0FF">95.4%</text>
+
+      <text x="60" y="360" font-family="monospace" font-size="24" fill="#9CA3AF">Gemini Flash 3.8 (Ultra-Fast)</text>
+      <rect x="60" y="380" width="640" height="45" rx="8" fill="#4B5563"/>
+      <text x="670" y="412" font-family="monospace" font-size="24" fill="#9CA3AF">89.1%</text>
+
+      <text x="60" y="480" font-family="monospace" font-size="24" fill="#9CA3AF">Legacy Archive Models (2024)</text>
+      <rect x="60" y="500" width="280" height="45" rx="8" fill="#374151"/>
+      <text x="310" y="532" font-family="monospace" font-size="24" fill="#6B7280">38.2%</text>
+
+      <text x="440" y="660" font-family="monospace" font-size="30" fill="#10B981" text-anchor="middle">⚡ 2026 AI Era: Zero Hallucinations</text>
+    
+  </g>
+</svg>
