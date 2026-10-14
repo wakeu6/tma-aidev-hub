@@ -44,9 +44,9 @@ async def telegram_webhook(
     from pathlib import Path
     env_path = Path(__file__).resolve().parent.parent.parent.parent / ".env"
     config = dotenv_values(env_path) if env_path.exists() else {}
-    webapp_url = config.get("WEBAPP_URL") or os.environ.get("WEBAPP_URL") or "https://long-islands-tie.loca.lt"
-    if "lhr.life" in webapp_url or "localhost" in webapp_url:
-        webapp_url = "https://long-islands-tie.loca.lt"
+    webapp_url = config.get("WEBAPP_URL") or os.environ.get("WEBAPP_URL") or "https://tma-aidev-hub.onrender.com"
+    if "lhr.life" in webapp_url or "localhost" in webapp_url or "loca.lt" in webapp_url:
+        webapp_url = "https://tma-aidev-hub.onrender.com"
 
     reply_markup = {
         "inline_keyboard": [
