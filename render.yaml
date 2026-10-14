@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: aidev-tma-hub
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m uvicorn tma_service.backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: DEBUG_MOCK
+        value: "False"
+      - key: TG_BOT_TOKEN
+        sync: false
+      - key: WEBAPP_URL
+        sync: false
+      - key: ADSGRAM_BLOCK_ID
+        value: "53889"

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru" style="background-color: #0A0B0E; color: #FFFFFF;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AI Dev Hub & Marketplace | Telegram Mini App</title>
+  
+  <!-- Immediate Telegram WebApp Theme & Setup -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    try {
+      if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+        window.Telegram.WebApp.headerColor = '#0A0B0E';
+        window.Telegram.WebApp.backgroundColor = '#0A0B0E';
+      }
+    } catch (_) {}
+  </script>
+  
+  <!-- Adsgram SDK -->
+  <script defer src="https://sad.adsgram.ai/js/sad.min.js"></script>
+  <script>
+    window.ADSGRAM_BLOCK_ID = "53889";
+  </script>
+
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body style="background-color: #0A0B0E; color: #FFFFFF; min-height: 100vh;">
+  <div class="app-container">
+    
+    <!-- Top Header Profile -->
+    <header class="header">
+      <div class="user-profile">
+        <div class="avatar" id="userAvatar">AI</div>
+        <div class="user-meta">
+          <div class="user-name" id="userName">Загрузка...</div>
+          <div class="user-status" id="userStatus">
+            <span class="status-dot"></span>
+            <span id="statusText">Синхронизация</span>
+          </div>
+        </div>
+      </div>
+      <div class="tag-badge" id="envBadge">PROD</div>
+    </header>
+
+    <!-- Balance Hero Card -->
+    <section class="card balance-card">
+      <div class="card-label">ТВОЙ БАЛАНС</div>
+      <div class="balance-row">
+        <span class="balance-value" id="balanceValue">0</span>
+        <span class="balance-currency">PTS</span>
+      </div>
+      <div class="balance-hint">Фарми баллы на рекламе Adsgram или оплачивай материалы напрямую</div>
+    </section>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-tab="earn">
+        <span class="tab-icon">⚡</span>
+        <span>Фарминг</span>
+      </button>
+      <button class="nav-tab" data-tab="market">
+        <span class="tab-icon">🛒</span>
+        <span>Маркет</span>
+      </button>
+      <button class="nav-tab" data-tab="inventory">
+        <span class="tab-icon">📦</span>
+        <span>Покупки</span>
+      </button>
+    </nav>
+
+    <!-- ================= TAB 1: EARN / ADSGRAM / REFERRALS ================= -->
+    <div id="tab-earn" class="tab-content active">
+      <!-- Rewarded Ad Card (Adsgram) -->
+      <section class="card action-card">
+        <div class="action-header">
+          <div>
+            <h2 class="action-title">Спонсорский ролик</h2>
+            <p class="action-desc">Посмотри короткое видео Adsgram и получи баллы</p>
+          </div>
+          <div class="reward-pill">+100 PTS</div>
+        </div>
+
+        <button id="watchAdBtn" class="btn btn-primary">
+          <span class="btn-icon">▶</span>
+          <span id="watchAdBtnText">Смотреть рекламу</span>
+        </button>
+
+        <div id="cooldownTimer" class="cooldown-box hidden">
+          <div class="cooldown-spinner"></div>
+          <div class="cooldown-text">
+            Следующий просмотр через: <b id="cooldownSeconds">30</b> сек
+          </div>
+        </div>
+      </section>
+
+      <!-- Referral Program Card -->
+      <section class="card ref-card">
+        <div class="card-header-row">
+          <h2 class="card-title">Реферальная программа</h2>
+          <span class="ref-badge">+250 PTS</span>
+        </div>
+        <p class="ref-desc">Делись ссылкой с коллегами. Они получат 100 PTS, а ты — 250 PTS за каждого!</p>
+
+        <div class="ref-link-box">
+          <input type="text" id="refLinkInput" readonly value="Генерация ссылки...">
+          <button id="copyRefBtn" class="btn btn-secondary">Скопировать</button>
+        </div>
+
+        <div class="ref-stats-grid">
+          <div class="stat-item">
+            <div class="stat-num" id="refCount">0</div>
+            <div class="stat-label">Приглашено</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-num" id="refEarned">0</div>
+            <div class="stat-label">Заработано (PTS)</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Leaderboard Card -->
+      <section class="card leaderboard-card">
+        <div class="card-header-row">
+          <h2 class="card-title">Топ участников</h2>
+          <span class="live-dot">LIVE</span>
+        </div>
+        <div class="leaderboard-list" id="leaderboardList">
+          <div class="loading-placeholder">Загрузка рейтинга...</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= TAB 2: MARKETPLACE ================= -->
+    <div id="tab-market" class="tab-content">
+      <div class="market-header">
+        <h2 class="section-title">AI Маркетплейс</h2>
+        <p class="section-subtitle">Забирай за накопленные PTS или покупай через Stars / СБП</p>
+      </div>
+      <div id="productsGrid" class="products-grid">
+        <div class="loading-placeholder">Загрузка каталога товаров...</div>
+      </div>
+    </div>
+
+    <!-- ================= TAB 3: INVENTORY / PURCHASES ================= -->
+    <div id="tab-inventory" class="tab-content">
+      <div class="market-header">
+        <h2 class="section-title">Мои приобретенные материалы</h2>
+        <p class="section-subtitle">Все купленные промпты, исходники и ключи доступа всегда под рукой</p>
+      </div>
+      <div id="purchasesList" class="purchases-list">
+        <div class="loading-placeholder">Загрузка покупок...</div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span>AI Developer Ecosystem 2026 • Adsgram & Telegram Mini App</span>
+    </footer>
+
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Content Delivery Modal (Product Payload) -->
+  <div id="contentModal" class="ad-modal hidden">
+    <div class="ad-modal-content content-viewer-modal">
+      <div class="ad-modal-badge" id="contentModalBadge">МАТЕРИАЛ РАЗБЛОКИРОВАН</div>
+      <h3 class="ad-modal-title" id="contentModalTitle">Название продукта</h3>
+      <div class="payload-box">
+        <pre id="contentModalPayload">Загрузка содержимого...</pre>
+      </div>
+      <div class="modal-actions-row">
+        <button id="copyPayloadBtn" class="btn btn-primary">
+          <span>📋 Скопировать весь текст</span>
+        </button>
+        <button id="closeContentModalBtn" class="btn btn-secondary">
+          <span>Закрыть</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Simulated Ad Player Modal (Mock Mode) -->
+  <div id="adModal" class="ad-modal hidden">
+    <div class="ad-modal-content">
+      <div class="ad-modal-badge">ADSGRAM REWARDED // SIMULATOR</div>
+      <h3 class="ad-modal-title">Спонсорский показ</h3>
+      <p class="ad-modal-desc">Идет воспроизведение спонсорского видеоролика...</p>
+      
+      <div class="ad-progress-bar">
+        <div id="adProgressFill" class="ad-progress-fill"></div>
+      </div>
+      
+      <div class="ad-timer-countdown">
+        Осталось: <span id="adTimerLeft">5</span> сек
+      </div>
+
+      <button id="adCloseBtn" class="btn btn-secondary ad-close-btn" disabled>
+        Подождите завершения
+      </button>
+    </div>
+  </div>
+
+  <!-- Floating Dev Mock Switcher (Active in Mock Mode) -->
+  <div id="devMockPanel" class="dev-mock-panel hidden">
+    <div class="dev-mock-header">
+      <span>⚙ DEV MOCK PANEL</span>
+      <button id="devMockToggleBtn" class="dev-mock-toggle">✕</button>
+    </div>
+    <div class="dev-mock-body">
+      <label>Тестовый пользователь:</label>
+      <select id="mockUserSelect">
+        <option value="7770001">Пользователь #1 (@alex_dev)</option>
+        <option value="7770002">Пользователь #2 (@maria_code)</option>
+        <option value="7770003">Пользователь #3 (@sergey_ai)</option>
+      </select>
+      <div class="dev-mock-actions">
+        <button id="devResetCooldownBtn" class="btn-sm">Сбросить кулдаун</button>
+        <button id="devAddBonusBtn" class="btn-sm">+500 PTS</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

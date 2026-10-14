@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Databases & data
+tma_service/data/*.db
+tma_service/data/*.db-wal
+tma_service/data/*.db-shm
+
+# Env files
+.env
+.env.local
+
+# Remotion & Node
+node_modules/
+video-shorts/node_modules/
+out/
+.cache/
+
+# Cloudflare & Tunnels
+cloudflared.exe
+*.log
