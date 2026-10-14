@@ -1,0 +1,81 @@
+name: Automated 2026 Shorts Pipeline
+
+on:
+  schedule:
+    # 2 раза в день: 10:00 и 16:00 UTC (13:00 и 19:00 МСК)
+    - cron: '0 10 * * *'
+    - cron: '0 16 * * *'
+  workflow_dispatch:
+    inputs:
+      custom_topic:
+        description: 'Кастомная тема ролика (оставьте пустым для авто-выбора 2026)'
+        required: false
+        default: ''
+
+concurrency:
+  group: shorts-pipeline
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: 📥 Клонирование репозитория
+        uses: actions/checkout@v4
+
+      - name: 🟢 Настройка Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: video-shorts/package-lock.json
+
+      - name: 🐍 Настройка Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 📦 Установка системных утилит (FFmpeg и шрифты)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-noto-color-emoji
+
+      - name: 🐍 Установка Python библиотек
+        run: |
+          python -m pip install --upgrade pip
+          pip install edge-tts requests python-dotenv
+
+      - name: 📦 Установка зависимостей Remotion
+        working-directory: video-shorts
+        run: |
+          npm ci
+
+      - name: 🎬 Генерация сценария, звука и рендер видео в Remotion
+        env:
+          BRAND_BOT_HANDLE: "@aidev_shorts_bot"
+          ENABLE_BRAND_PILL: "true"
+          WEBAPP_URL: "https://tma-aidev-hub.onrender.com"
+          MOCK_VEO: "true"
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          CUSTOM_TOPIC: ${{ github.event.inputs.custom_topic }}
+        run: |
+          node run_pipeline.mjs
+
+      - name: 💾 Сохранение готового MP4 в артефакты GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: shorts-video-${{ github.run_id }}
+          path: out/video.mp4
+          retention-days: 14
+
+      - name: 🚀 Авто-публикация в YouTube Shorts и закреп комментария
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          YOUTUBE_PRIVACY_STATUS: ${{ secrets.YOUTUBE_PRIVACY_STATUS || 'public' }}
+        run: |
+          node pipeline/publisher/youtube_api_publisher.mjs
