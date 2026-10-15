@@ -47,10 +47,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install edge-tts requests python-dotenv
 
-      - name: 📦 Установка зависимостей Remotion
+      - name: 📦 Установка зависимостей Remotion и Playwright
         working-directory: video-shorts
         run: |
           npm ci
+
+      - name: 🎭 Установка Chromium для Playwright
+        working-directory: video-shorts
+        run: |
+          npx playwright install --with-deps chromium
 
       - name: 🎬 Генерация сценария, звука и рендер видео в Remotion
         env:
@@ -58,6 +63,7 @@ jobs:
           ENABLE_BRAND_PILL: "true"
           WEBAPP_URL: "https://tma-aidev-hub.onrender.com"
           MOCK_VEO: "true"
+          SKIP_UPLOAD: "true"
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           CUSTOM_TOPIC: ${{ github.event.inputs.custom_topic }}
@@ -71,11 +77,20 @@ jobs:
           path: out/video.mp4
           retention-days: 14
 
-      - name: 🚀 Авто-публикация в YouTube Shorts и закреп комментария
+      - name: 🚀 Авто-публикация в YouTube Shorts
         env:
+          NODE_PATH: video-shorts/node_modules
+          YOUTUBE_STORAGE_STATE: ${{ secrets.YOUTUBE_STORAGE_STATE }}
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          YOUTUBE_PRIVACY_STATUS: ${{ secrets.YOUTUBE_PRIVACY_STATUS || 'public' }}
         run: |
-          node pipeline/publisher/youtube_api_publisher.mjs
+          if [ -n "$YOUTUBE_STORAGE_STATE" ]; then
+            echo "Использование сессии Playwright (storageState)..."
+            node upload_youtube.mjs
+          elif [ -n "$YOUTUBE_CLIENT_ID" ]; then
+            echo "Использование YouTube Data API v3..."
+            node pipeline/publisher/youtube_api_publisher.mjs
+          else
+            echo "Секреты YouTube не заданы. Ролик сохранен в артефактах."
+          fi
