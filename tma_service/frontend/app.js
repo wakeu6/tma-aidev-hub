@@ -9,7 +9,10 @@
   let isWatchingAd = false;
 
   // Mock Dev State
-  let currentMockId = localStorage.getItem('tma_mock_user_id') || '7770001';
+  let currentMockId = '7770001';
+  try {
+    currentMockId = localStorage.getItem('tma_mock_user_id') || '7770001';
+  } catch (_) {}
   let currentMockUsername = 'alex_dev';
   let currentMockName = 'Alex Developer';
 
@@ -74,9 +77,9 @@
 
     if (tg?.initDataUnsafe?.user) {
       const u = tg.initDataUnsafe.user;
-      headers['X-Telegram-User-Id'] = String(u.id);
-      headers['X-Telegram-Username'] = u.username || '';
-      headers['X-Telegram-First-Name'] = u.first_name || '';
+      if (u.id) headers['X-Telegram-User-Id'] = String(u.id);
+      if (u.username) headers['X-Telegram-Username'] = encodeURIComponent(String(u.username));
+      if (u.first_name) headers['X-Telegram-First-Name'] = encodeURIComponent(String(u.first_name));
     }
 
     if (isInsideTelegram && tg.initData) {
@@ -84,9 +87,9 @@
       headers['Authorization'] = `tma ${tg.initData}`;
     } else {
       // Mock mode fallback headers
-      headers['X-Mock-User-Id'] = currentMockId;
-      headers['X-Mock-Username'] = currentMockUsername;
-      headers['X-Mock-First-Name'] = currentMockName;
+      headers['X-Mock-User-Id'] = String(currentMockId);
+      headers['X-Mock-Username'] = encodeURIComponent(String(currentMockUsername || ''));
+      headers['X-Mock-First-Name'] = encodeURIComponent(String(currentMockName || ''));
     }
 
     return headers;
@@ -140,19 +143,24 @@
       currentUser = await response.json();
 
       // Проверка и синхронизация локального кэша баланса для защиты от сброса при перезапуске сервера
-      const cacheKey = 'striver_balance_' + (currentUser.tg_id || 'guest');
-      const cachedBalance = localStorage.getItem(cacheKey);
-      if (cachedBalance && Number(cachedBalance) > Number(currentUser.balance)) {
-        currentUser.balance = Number(cachedBalance);
-      }
+      try {
+        const cacheKey = 'striver_balance_' + (currentUser.tg_id || 'guest');
+        const cachedBalance = localStorage.getItem(cacheKey);
+        if (cachedBalance && Number(cachedBalance) > Number(currentUser.balance)) {
+          currentUser.balance = Number(cachedBalance);
+        }
+      } catch (_) {}
 
       renderUserProfile(currentUser);
       await checkRewardCooldown();
       await loadLeaderboard();
       await loadReferralsDetail();
     } catch (err) {
-      console.error('[TMA] Ошибка:', err.message);
-      showToast('Сбой синхронизации с сервером');
+      console.error('[TMA] Ошибка профиля:', err.message);
+      // Если профиль уже отображается из Telegram WebApp данных, не показываем ложную ошибку
+      if (!currentUser && (!tg?.initDataUnsafe?.user)) {
+        showToast('Сбой синхронизации с сервером');
+      }
     }
   }
 
@@ -169,9 +177,11 @@
     }
 
     // Сохраняем актуальный баланс в локальный кэш
-    if (user.tg_id) {
-      localStorage.setItem('striver_balance_' + user.tg_id, String(user.balance));
-    }
+    try {
+      if (user.tg_id) {
+        localStorage.setItem('striver_balance_' + user.tg_id, String(user.balance));
+      }
+    } catch (_) {}
 
     if (elRefLinkInput) {
       elRefLinkInput.value = user.referral_link || 'https://t.me/aidev_shorts_bot?start=ref_xxx';

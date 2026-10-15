@@ -61,6 +61,9 @@ def validate_telegram_init_data(init_data: str, bot_token: str) -> Optional[Dict
 async def get_current_user(
     authorization: Optional[str] = Header(None, alias="Authorization"),
     x_telegram_init_data: Optional[str] = Header(None, alias="X-Telegram-Init-Data"),
+    x_telegram_user_id: Optional[str] = Header(None, alias="X-Telegram-User-Id"),
+    x_telegram_username: Optional[str] = Header(None, alias="X-Telegram-Username"),
+    x_telegram_first_name: Optional[str] = Header(None, alias="X-Telegram-First-Name"),
     x_mock_user_id: Optional[str] = Header(None, alias="X-Mock-User-Id"),
     x_mock_username: Optional[str] = Header(None, alias="X-Mock-Username"),
     x_mock_first_name: Optional[str] = Header(None, alias="X-Mock-First-Name"),
@@ -69,14 +72,25 @@ async def get_current_user(
     """
     FastAPI зависимость аутентификации пользователя.
     1. Авторизует реальных пользователей Telegram через HMAC SHA256 подпись initData.
-    2. При внешних запросах (модерация Adsgram, браузер, тест) предоставляет
+    2. При наличии Telegram WebApp User-Id заголовков синхронизирует профиль Telegram.
+    3. При внешних запросах (модерация Adsgram, браузер, тест) предоставляет
        бесшовный гостевой аккаунт Adsgram Reviewer с балансом для проверки маркетплейса.
     Никогда не блокирует интерфейс ошибкой 401.
     """
+    # Санитизация заголовков (гарантия строкового типа)
+    auth_str = authorization if isinstance(authorization, str) else None
+    init_data_str = x_telegram_init_data if isinstance(x_telegram_init_data, str) else None
+    tg_user_id_str = x_telegram_user_id if isinstance(x_telegram_user_id, str) else None
+    tg_username_str = x_telegram_username if isinstance(x_telegram_username, str) else None
+    tg_first_name_str = x_telegram_first_name if isinstance(x_telegram_first_name, str) else None
+    mock_id_str = x_mock_user_id if isinstance(x_mock_user_id, str) else None
+    mock_username_str = x_mock_username if isinstance(x_mock_username, str) else None
+    mock_first_name_str = x_mock_first_name if isinstance(x_mock_first_name, str) else None
+
     # Извлечение initData из заголовков
-    init_data = x_telegram_init_data
-    if not init_data and authorization and authorization.startswith("tma "):
-        init_data = authorization[4:].strip()
+    init_data = init_data_str
+    if not init_data and auth_str and auth_str.startswith("tma "):
+        init_data = auth_str[4:].strip()
 
     user_info = None
 
@@ -84,27 +98,36 @@ async def get_current_user(
     if init_data and TG_BOT_TOKEN:
         user_info = validate_telegram_init_data(init_data, TG_BOT_TOKEN)
 
-    # 2. Если initData отсутствует или не прошла валидацию (Adsgram проверка в браузере, гость или мок)
-    if not user_info:
-        if x_mock_user_id and x_mock_user_id.isdigit():
-            mock_tg_id = int(x_mock_user_id)
-            mock_username = x_mock_username or "mock_developer"
-            mock_first_name = x_mock_first_name or "Dev Tester"
-        else:
-            # Дефолтный профиль для модераторов Adsgram и внешних веб-посетителей
-            mock_tg_id = 100000001
-            mock_username = "adsgram_reviewer"
-            mock_first_name = "Adsgram Reviewer"
-
+    # 2. Если initData не вернула данные, но Telegram WebApp передал заголовки пользователя
+    if not user_info and tg_user_id_str and tg_user_id_str.isdigit():
+        clean_first_name = unquote(tg_first_name_str) if tg_first_name_str else "Telegram User"
+        clean_username = unquote(tg_username_str) if tg_username_str else None
         user_info = {
-            "id": mock_tg_id,
-            "username": mock_username,
-            "first_name": mock_first_name,
+            "id": int(tg_user_id_str),
+            "username": clean_username,
+            "first_name": clean_first_name,
         }
 
-    tg_id = user_info.get("id")
-    if not tg_id:
-        tg_id = 100000001
+    # 3. Если запрос из Dev Mock панели или внешнего браузера
+    if not user_info:
+        if mock_id_str and mock_id_str.isdigit():
+            mock_tg_id = int(mock_id_str)
+            clean_mock_username = unquote(mock_username_str) if mock_username_str else "mock_developer"
+            clean_mock_first_name = unquote(mock_first_name_str) if mock_first_name_str else "Dev Tester"
+            user_info = {
+                "id": mock_tg_id,
+                "username": clean_mock_username,
+                "first_name": clean_mock_first_name,
+            }
+        else:
+            # Дефолтный профиль для модераторов Adsgram и внешних веб-посетителей
+            user_info = {
+                "id": 100000001,
+                "username": "adsgram_reviewer",
+                "first_name": "Adsgram Reviewer",
+            }
+
+    tg_id = user_info.get("id") or 100000001
 
     # Получение или создание пользователя в базе данных SQLite
     stmt = select(User).where(User.tg_id == tg_id)
@@ -120,11 +143,16 @@ async def get_current_user(
             first_name=user_info.get("first_name", "User"),
             balance=initial_balance,
         )
-        db.add(user)
-        await db.commit()
-        await db.refresh(user)
+        try:
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
+        except Exception:
+            await db.rollback()
+            stmt_retry = select(User).where(User.tg_id == tg_id)
+            res_retry = await db.execute(stmt_retry)
+            user = res_retry.scalar_one_or_none()
     elif tg_id == 100000001 and user.balance < 400:
-        # Пополняем баланс аккаунта модератора до 500 PTS, если он потратил очки
         user.balance = 500
         await db.commit()
         await db.refresh(user)
