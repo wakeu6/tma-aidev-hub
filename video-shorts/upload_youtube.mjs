@@ -341,23 +341,43 @@ async function uploadShorts() {
     console.log('[Uploader] Описание заполнено.');
   }
 
+  // Нейтрализация перехватывающих оверлеев/бэкдропов
+  await page.evaluate(() => {
+    document.querySelectorAll('tp-yt-iron-overlay-backdrop').forEach((el) => {
+      el.style.pointerEvents = 'none';
+    });
+  }).catch(() => {});
+
   // 6. Переключатель "Не для детей"
   const notForKidsRadio = page.locator('tp-yt-paper-radio-button[name="VIDEO_MADE_FOR_KIDS_NOT_MFK"], tp-yt-paper-radio-button:has-text("не для детей"), tp-yt-paper-radio-button:has-text("Not made for kids")').first();
   if (await notForKidsRadio.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await notForKidsRadio.scrollIntoViewIfNeeded();
-    await notForKidsRadio.click();
-    console.log('[Uploader] Установлено: Не для детей.');
+    const isChecked = await notForKidsRadio.getAttribute('aria-checked').catch(() => 'false');
+    if (isChecked === 'true') {
+      console.log('[Uploader] "Не для детей" уже выбрано по умолчанию.');
+    } else {
+      await notForKidsRadio.scrollIntoViewIfNeeded().catch(() => {});
+      try {
+        await notForKidsRadio.click({ force: true });
+      } catch (err) {
+        await notForKidsRadio.evaluate((el) => el.click()).catch(() => {});
+      }
+      console.log('[Uploader] Установлено: Не для детей.');
+    }
   }
 
   // 7. Теги (развернуть "Развернуть" / "Show more")
   const showMoreBtn = page.locator('button:has-text("Развернуть"), button:has-text("Show more"), ytcp-button:has-text("Развернуть")').first();
   if (await showMoreBtn.isVisible({ timeout: 4000 }).catch(() => false)) {
-    await showMoreBtn.scrollIntoViewIfNeeded();
-    await showMoreBtn.click();
+    await showMoreBtn.scrollIntoViewIfNeeded().catch(() => {});
+    try {
+      await showMoreBtn.click({ force: true });
+    } catch (e) {
+      await showMoreBtn.evaluate((el) => el.click()).catch(() => {});
+    }
     await page.waitForTimeout(1000);
     const tagsInput = page.locator('#tags-container input, input[aria-label*="Теги"]').first();
     if (await tagsInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await tagsInput.scrollIntoViewIfNeeded();
+      await tagsInput.scrollIntoViewIfNeeded().catch(() => {});
       await tagsInput.fill(metadata.tags.slice(0, 10).join(', '));
       await tagsInput.press('Enter');
       console.log('[Uploader] Теги добавлены.');
@@ -366,19 +386,37 @@ async function uploadShorts() {
 
   // 8. Переход по шагам проверки (Далее / Next)
   for (let step = 1; step <= 3; step++) {
+    await page.evaluate(() => {
+      document.querySelectorAll('tp-yt-iron-overlay-backdrop').forEach((el) => {
+        el.style.pointerEvents = 'none';
+      });
+    }).catch(() => {});
     const nextBtn = page.locator('#next-button, button:has-text("Далее"), ytcp-button:has-text("Далее"), button:has-text("Next")').first();
     if (await nextBtn.isVisible({ timeout: 10000 }).catch(() => false)) {
-      await nextBtn.click();
+      try {
+        await nextBtn.click({ force: true });
+      } catch (e) {
+        await nextBtn.evaluate((el) => el.click()).catch(() => {});
+      }
       console.log(`[Uploader] Шаг проверки ${step} пройден.`);
       await page.waitForTimeout(2000);
     }
   }
 
   // 9. Видимость: Открытый доступ (Public)
+  await page.evaluate(() => {
+    document.querySelectorAll('tp-yt-iron-overlay-backdrop').forEach((el) => {
+      el.style.pointerEvents = 'none';
+    });
+  }).catch(() => {});
   const publicRadio = page.locator('tp-yt-paper-radio-button[name="PUBLIC"], tp-yt-paper-radio-button:has-text("Открытый доступ"), tp-yt-paper-radio-button:has-text("Public")').first();
   await publicRadio.waitFor({ timeout: 12000 });
-  await publicRadio.scrollIntoViewIfNeeded();
-  await publicRadio.click();
+  await publicRadio.scrollIntoViewIfNeeded().catch(() => {});
+  try {
+    await publicRadio.click({ force: true });
+  } catch (e) {
+    await publicRadio.evaluate((el) => el.click()).catch(() => {});
+  }
   console.log('[Uploader] Установлен открытый доступ (Public).');
 
   // 10. Получение ссылки на ролик из окна загрузки
@@ -392,7 +430,11 @@ async function uploadShorts() {
   // 11. Кнопка Опубликовать / Сохранить
   const doneBtn = page.locator('#done-button, button:has-text("Опубликовать"), ytcp-button:has-text("Опубликовать"), button:has-text("Publish"), button:has-text("Сохранить")').first();
   await doneBtn.waitFor({ timeout: 12000 });
-  await doneBtn.click();
+  try {
+    await doneBtn.click({ force: true });
+  } catch (e) {
+    await doneBtn.evaluate((el) => el.click()).catch(() => {});
+  }
   console.log('[Uploader] Нажата кнопка публикации.');
 
   // Ожидание завершения запроса
