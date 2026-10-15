@@ -144,7 +144,7 @@
 
       // Проверка и синхронизация локального кэша баланса для защиты от сброса при перезапуске сервера
       try {
-        const cacheKey = 'striver_balance_' + (currentUser.tg_id || 'guest');
+        const cacheKey = 'aidev_balance_' + (currentUser.tg_id || 'guest');
         const cachedBalance = localStorage.getItem(cacheKey);
         if (cachedBalance && Number(cachedBalance) > Number(currentUser.balance)) {
           currentUser.balance = Number(cachedBalance);
@@ -179,7 +179,7 @@
     // Сохраняем актуальный баланс в локальный кэш
     try {
       if (user.tg_id) {
-        localStorage.setItem('striver_balance_' + user.tg_id, String(user.balance));
+        localStorage.setItem('aidev_balance_' + user.tg_id, String(user.balance));
       }
     } catch (_) {}
 
@@ -746,7 +746,7 @@
           <h3 class="news-title">${item.title}</h3>
           <p class="news-desc">${item.summary}</p>
           <div class="news-footer">
-            <span>⚡ Striver AI Digest</span>
+            <span>⚡ AI Dev Digest</span>
             <span>${item.created_at ? new Date(item.created_at).toLocaleDateString('ru-RU') : 'Сегодня'}</span>
           </div>
         </div>

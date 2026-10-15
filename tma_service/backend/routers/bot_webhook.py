@@ -64,7 +64,7 @@ async def telegram_webhook(
         "inline_keyboard": [
             [
                 {
-                    "text": "⚡ Открыть Striver Shop (100 ₽ / PTS)",
+                    "text": "⚡ Открыть AI Dev Shop (100 ₽ / PTS)",
                     "web_app": {"url": webapp_url}
                 }
             ],

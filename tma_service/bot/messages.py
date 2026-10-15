@@ -1,9 +1,9 @@
 """
-User-facing messages for the Telegram Bot (Striver AI Shop).
+User-facing messages for the Telegram Bot (AI Dev Shop).
 """
 
 WELCOME_MESSAGE = """
-🔥 <b>Добро пожаловать в Striver AI Shop!</b>
+🔥 <b>Добро пожаловать в AI Dev Shop!</b>
 
 Здесь собраны лучшие цифровые материалы, промпты и инструменты для AI-разработки и YouTube Shorts:
 
