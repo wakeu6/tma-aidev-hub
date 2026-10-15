@@ -45,18 +45,23 @@ app.include_router(rewards.router)
 app.include_router(shop.router)
 app.include_router(bot_webhook.router)
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def healthcheck():
     return {
         "status": "OK",
         "service": "Telegram Mini App Backend",
+        "version": "1.0.0",
         "debug_mock": os.environ.get("DEBUG_MOCK", "True"),
     }
+
+@app.api_route("/ping", methods=["GET", "HEAD"])
+async def ping():
+    return {"status": "alive", "pong": True}
 
 # Раздача статики фронтенда Mini App
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
-    @app.get("/")
+    @app.api_route("/", methods=["GET", "HEAD"])
     async def serve_index():
         return FileResponse(FRONTEND_DIR / "index.html")

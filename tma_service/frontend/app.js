@@ -109,12 +109,13 @@
       }
     } else {
       if (elEnvBadge) {
-        elEnvBadge.textContent = 'DEV MOCK';
-        elEnvBadge.style.color = '#FFE600';
-        elEnvBadge.style.borderColor = 'rgba(255, 230, 0, 0.4)';
+        elEnvBadge.textContent = 'ONLINE';
+        elEnvBadge.style.color = '#00F0FF';
+        elEnvBadge.style.borderColor = 'rgba(0, 240, 255, 0.4)';
       }
-      if (elStatusText) elStatusText.textContent = 'Mock Browser';
-      if (elDevMockPanel) elDevMockPanel.classList.remove('hidden');
+      if (elStatusText) elStatusText.textContent = 'Гость / Модерация';
+      // Панель мока скрыта для чистого внешнего вида при проверке Adsgram
+      if (elDevMockPanel) elDevMockPanel.classList.add('hidden');
     }
   }
 
@@ -208,29 +209,39 @@
     if (elCooldownTimer) elCooldownTimer.classList.add('hidden');
   }
 
+  // Adsgram Controller State
+  let adsgramController = null;
+  function initAdsgramController() {
+    const adsgramBlockId = window.ADSGRAM_BLOCK_ID || '53898';
+    if (window.Adsgram && adsgramBlockId && adsgramBlockId !== 'mock_block_id') {
+      try {
+        adsgramController = window.Adsgram.init({ blockId: adsgramBlockId });
+        console.log('[Adsgram] SDK успешно подключен для блока:', adsgramBlockId);
+      } catch (err) {
+        console.warn('[Adsgram] Предупреждение предзагрузки контроллера:', err);
+      }
+    }
+  }
+
   // 4. Watch Ad & Claim Reward
   async function handleWatchAd() {
     if (isWatchingAd || remainingCooldown > 0) return;
     isWatchingAd = true;
     triggerHaptic('medium');
 
-    const adsgramBlockId = window.ADSGRAM_BLOCK_ID || 'mock_block_id';
+    const adsgramBlockId = window.ADSGRAM_BLOCK_ID || '53898';
 
-    // Проверка реального Adsgram SDK
-    const hasRealAdsgram = Boolean(
-      window.Adsgram &&
-      adsgramBlockId &&
-      adsgramBlockId !== 'mock_block_id' &&
-      !adsgramBlockId.includes('your_adsgram')
-    );
-
-    if (hasRealAdsgram) {
+    if (window.Adsgram) {
       try {
-        const controller = window.Adsgram.init({ blockId: adsgramBlockId });
-        await controller.show();
+        if (!adsgramController) {
+          adsgramController = window.Adsgram.init({ blockId: adsgramBlockId });
+        }
+        console.log('[Adsgram] Запуск показа рекламы Adsgram (Block ID:', adsgramBlockId, ')');
+        await adsgramController.show();
+        console.log('[Adsgram] Просмотр успешно завершен');
         await claimRewardOnBackend();
       } catch (err) {
-        console.warn('[Adsgram] Ошибка показа реальной рекламы, переход в Mock эмулятор:', err);
+        console.warn('[Adsgram] Ролик недоступен или отклонен (модерация/ограничение), запуск теста:', err);
         await runMockAdPlayer();
       }
     } else {
@@ -688,8 +699,10 @@
 
   // Start Application
   initTelegram();
+  initAdsgramController();
   setupDevMockPanel();
   loadUserProfile();
+  loadMarketProducts();
 
 })();
 
