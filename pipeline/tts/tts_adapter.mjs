@@ -12,7 +12,8 @@ const pythonExe = fs.existsSync(path.join(rootDir, '.venv', 'Scripts', 'python.e
   ? path.join(rootDir, '.venv', 'Scripts', 'python.exe')
   : 'python';
 
-const ffprobe = path.join(vsDir, 'node_modules', '@remotion', 'compositor-win32-x64-msvc', 'ffprobe.exe');
+const winFfprobe = path.join(vsDir, 'node_modules', '@remotion', 'compositor-win32-x64-msvc', 'ffprobe.exe');
+const ffprobe = fs.existsSync(winFfprobe) ? winFfprobe : 'ffprobe';
 
 /**
  * Синтезирует аудио сегмента через ElevenLabs / Edge-TTS

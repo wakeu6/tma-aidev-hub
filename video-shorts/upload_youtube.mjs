@@ -4,19 +4,28 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, '..');
+const rootDir = __dirname.endsWith('video-shorts') ? path.resolve(__dirname, '..') : __dirname;
 
-// Поиск видео
+console.log('=== СУБАГЕНТ 3: YOUTUBE UPLOADER (Playwright CI & Local) ===');
+
+// 1. Поиск видеофайла
 const candidateVideoPaths = [
   path.join(rootDir, 'out', 'video.mp4'),
+  path.join(rootDir, 'video-shorts', 'out', 'video.mp4'),
   path.join(__dirname, 'out', 'video.mp4'),
   path.resolve(process.cwd(), 'out', 'video.mp4'),
 ];
 const videoPath = candidateVideoPaths.find((p) => fs.existsSync(p));
 
-// Поиск метаданных
+if (!videoPath) {
+  console.error('[Uploader] FAILED: Файл видео не найден ни по одному из путей:', candidateVideoPaths);
+  process.exit(1);
+}
+
+// 2. Поиск метаданных (shared/data.json и shared/trend.json)
 const candidateDataPaths = [
   path.join(rootDir, 'shared', 'data.json'),
+  path.join(rootDir, 'video-shorts', 'shared', 'data.json'),
   path.join(__dirname, 'shared', 'data.json'),
   path.resolve(process.cwd(), 'shared', 'data.json'),
 ];
@@ -24,57 +33,132 @@ const dataPath = candidateDataPaths.find((p) => fs.existsSync(p));
 
 const candidateTrendPaths = [
   path.join(rootDir, 'shared', 'trend.json'),
+  path.join(rootDir, 'video-shorts', 'shared', 'trend.json'),
   path.join(__dirname, 'shared', 'trend.json'),
   path.resolve(process.cwd(), 'shared', 'trend.json'),
 ];
 const trendPath = candidateTrendPaths.find((p) => fs.existsSync(p));
 
-console.log('=== СУБАГЕНТ 3: UPLOADER ===');
+let metadata = {
+  title: 'Как писать продакшн за вечер с Cursor и Claude 🔥 #shorts',
+  description: 'AI инструменты 2026 года для разработчиков.\n\n👇 Все материалы и бот: https://t.me/aidev_shorts_bot/app\n\n#shorts #ai #coding #cursor #tech',
+  tags: ['shorts', 'ai', 'cursor', 'claude', 'vibecoding', 'programming'],
+};
 
-if (!videoPath) {
-  console.error(`[Uploader] FAILED: Файл видео не найден ни по одному из путей:`, candidateVideoPaths);
-  process.exit(1);
+if (dataPath && fs.existsSync(dataPath)) {
+  try {
+    const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+    if (data.youtube) {
+      if (data.youtube.title) metadata.title = data.youtube.title;
+      if (data.youtube.description) metadata.description = data.youtube.description;
+      if (Array.isArray(data.youtube.tags)) metadata.tags = data.youtube.tags;
+    }
+  } catch (e) {
+    console.warn('[Uploader] Предупреждение: ошибка чтения data.json:', e.message);
+  }
 }
 
-if (!dataPath) {
-  console.error(`[Uploader] FAILED: Файл данных shared/data.json не найден ни по одному из путей:`, candidateDataPaths);
-  process.exit(1);
+if (trendPath && fs.existsSync(trendPath)) {
+  try {
+    const trend = JSON.parse(fs.readFileSync(trendPath, 'utf8'));
+    if (Array.isArray(trend.keywords)) {
+      metadata.tags = Array.from(new Set([...metadata.tags, ...trend.keywords]));
+    }
+  } catch (e) {}
 }
 
-const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
-const trend = trendPath ? JSON.parse(fs.readFileSync(trendPath, 'utf8')) : null;
+// Убедимся, что заголовок содержит #shorts, а описание — ссылку на Mini App
+if (!metadata.title.includes('#shorts')) {
+  metadata.title = `${metadata.title} #shorts`;
+}
+if (!metadata.description.includes('https://t.me/aidev_shorts_bot')) {
+  metadata.description = `👇 Бот и материалы из видео: https://t.me/aidev_shorts_bot/app\n\n` + metadata.description;
+}
 
-const ytMeta = data.youtube || {};
-const title = ytMeta.title || 'Как писать продакшн за вечер с Cursor и Claude 🔥 #shorts';
-const description = ytMeta.description || '';
-const tags = Array.from(new Set([...(ytMeta.tags || []), ...(trend?.keywords || [])]));
+const stats = fs.statSync(videoPath);
+console.log(`[Uploader] Видео: ${videoPath} (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
+console.log(`[Uploader] Заголовок: "${metadata.title}"`);
+console.log(`[Uploader] Теги: ${metadata.tags.slice(0, 10).join(', ')}`);
 
-console.log(`[Uploader] Название видео: "${title}"`);
-console.log(`[Uploader] Файл: ${videoPath} (${(fs.statSync(videoPath).size / 1024 / 1024).toFixed(2)} MB)`);
-console.log(`[Uploader] Теги: ${tags.join(', ')}`);
+// 3. Извлечение сессии: YOUTUBE_STORAGE_STATE или storage_state.json или chrome-profile
+let storageStateObj = null;
 
-// Поиск сохраненного профиля ./chrome-profile
+if (process.env.YOUTUBE_STORAGE_STATE) {
+  try {
+    const raw = process.env.YOUTUBE_STORAGE_STATE.trim();
+    if (raw.startsWith('{')) {
+      storageStateObj = JSON.parse(raw);
+    } else {
+      const decoded = Buffer.from(raw, 'base64').toString('utf8');
+      storageStateObj = JSON.parse(decoded);
+    }
+    console.log('[Uploader] Успешно загружен storageState из секрета окружения YOUTUBE_STORAGE_STATE');
+  } catch (e) {
+    if (fs.existsSync(process.env.YOUTUBE_STORAGE_STATE)) {
+      try {
+        storageStateObj = JSON.parse(fs.readFileSync(process.env.YOUTUBE_STORAGE_STATE, 'utf8'));
+        console.log('[Uploader] Загружен storageState из файла по пути в переменной окружения');
+      } catch (err) {}
+    } else {
+      console.warn('[Uploader] Предупреждение: не удалось распарсить YOUTUBE_STORAGE_STATE:', e.message);
+    }
+  }
+}
+
+if (!storageStateObj) {
+  const candidateStorageFiles = [
+    path.resolve(process.cwd(), 'storage_state.json'),
+    path.join(rootDir, 'video-shorts', 'storage_state.json'),
+    path.join(__dirname, 'storage_state.json'),
+    path.join(rootDir, 'storage_state.json'),
+  ];
+  const foundFile = candidateStorageFiles.find((p) => fs.existsSync(p));
+  if (foundFile) {
+    try {
+      storageStateObj = JSON.parse(fs.readFileSync(foundFile, 'utf8'));
+      console.log(`[Uploader] Найдена сохраненная сессия в файле: ${foundFile}`);
+    } catch (e) {
+      console.warn(`[Uploader] Ошибка чтения ${foundFile}:`, e.message);
+    }
+  }
+}
+
+// Поиск локальной папки профиля Chrome (для локального дебага)
 const candidateProfiles = [
   path.resolve(process.cwd(), 'chrome-profile'),
   path.resolve(__dirname, 'chrome-profile'),
   path.resolve(rootDir, 'chrome-profile'),
+  path.resolve(rootDir, 'video-shorts', 'chrome-profile'),
 ];
 const effectiveProfileDir = candidateProfiles.find((p) => fs.existsSync(p));
 
-if (!effectiveProfileDir) {
-  console.error(`[Uploader] FAILED: Папка профиля Chrome не найдена в ./chrome-profile`);
-  console.error('[Uploader] Причина: Отсутствует авторизованная сессия Chrome.');
-  console.error('[Uploader] Запустите: node init_chrome_profile.mjs для входа в YouTube Studio.');
+if (!storageStateObj && !effectiveProfileDir) {
+  console.error('[Uploader] FAILED: Авторизованная сессия не найдена.');
+  console.error('[Uploader] Требуется секрет YOUTUBE_STORAGE_STATE или файл storage_state.json или папка chrome-profile.');
   process.exit(1);
 }
 
-console.log(`[Uploader] Используется профиль Chrome: ${effectiveProfileDir}`);
-
-// Загрузка Playwright
+// 4. Загрузка Playwright
 let playwright;
 try {
   playwright = await import('playwright');
 } catch (e) {
+  const candidatePlaywright = [
+    path.join(rootDir, 'video-shorts', 'node_modules', 'playwright', 'index.mjs'),
+    path.join(__dirname, 'video-shorts', 'node_modules', 'playwright', 'index.mjs'),
+    path.join(__dirname, 'node_modules', 'playwright', 'index.mjs'),
+  ];
+  for (const c of candidatePlaywright) {
+    if (fs.existsSync(c)) {
+      try {
+        playwright = await import(c);
+        break;
+      } catch (err) {}
+    }
+  }
+}
+
+if (!playwright) {
   console.error('[Uploader] FAILED: Модуль playwright не установлен.');
   console.error('[Uploader] Установите: npm install playwright');
   process.exit(1);
@@ -82,61 +166,80 @@ try {
 
 async function uploadShorts() {
   const { chromium } = playwright;
-  console.log('[Uploader] Запуск системного Google Chrome с маскировкой автоматизации...');
 
-  // Проверка и запуск локального прокси при необходимости
+  // Опциональный локальный прокси (если поднят на порту 10809 локально)
   let proxyArg = [];
   try {
     const net = await import('net');
     const hasProxy = await new Promise((resolve) => {
       const s = new net.Socket();
-      s.setTimeout(1000);
+      s.setTimeout(800);
       s.on('connect', () => { s.destroy(); resolve(true); });
       s.on('timeout', () => { s.destroy(); resolve(false); });
       s.on('error', () => { s.destroy(); resolve(false); });
       s.connect(10809, '127.0.0.1');
     });
     if (hasProxy) {
-      console.log('[Uploader] Обнаружен локальный прокси 127.0.0.1:10809. Подключение через прокси...');
+      console.log('[Uploader] Обнаружен локальный прокси 127.0.0.1:10809. Использование прокси...');
       proxyArg = ['--proxy-server=http://127.0.0.1:10809'];
     }
   } catch (e) {}
 
-  const browserContext = await chromium.launchPersistentContext(effectiveProfileDir, {
-    channel: 'chrome',
-    headless: false,
-    viewport: null,
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-    ignoreDefaultArgs: ['--enable-automation'],
-    args: [
-      '--disable-blink-features=AutomationControlled',
-      '--no-sandbox',
-      '--disable-infobars',
-      '--disable-dev-shm-usage',
-      '--disable-features=IsolateOrigins,site-per-process',
-      '--start-maximized',
-      '--no-first-run',
-      '--no-service-autorun',
-      '--password-store=basic',
-      ...proxyArg,
-    ],
-  });
+  let browser = null;
+  let browserContext = null;
 
-  // Маскировка navigator.webdriver
+  const isHeadless = process.env.HEADLESS !== 'false';
+
+  if (storageStateObj) {
+    console.log(`[Uploader] Запуск Chromium (${isHeadless ? 'headless' : 'headful'}) с сессией storageState...`);
+    browser = await chromium.launch({
+      headless: isHeadless,
+      args: [
+        '--disable-blink-features=AutomationControlled',
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-infobars',
+        '--disable-dev-shm-usage',
+        '--disable-features=IsolateOrigins,site-per-process',
+        '--no-first-run',
+        ...proxyArg,
+      ],
+    });
+    browserContext = await browser.newContext({
+      storageState: storageStateObj,
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      viewport: { width: 1280, height: 800 },
+      locale: 'ru-RU',
+    });
+  } else {
+    console.log(`[Uploader] Запуск Chrome с локальным профилем: ${effectiveProfileDir}`);
+    browserContext = await chromium.launchPersistentContext(effectiveProfileDir, {
+      channel: 'chrome',
+      headless: isHeadless,
+      viewport: isHeadless ? { width: 1280, height: 800 } : null,
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      ignoreDefaultArgs: ['--enable-automation'],
+      args: [
+        '--disable-blink-features=AutomationControlled',
+        '--no-sandbox',
+        '--disable-infobars',
+        '--disable-dev-shm-usage',
+        '--disable-features=IsolateOrigins,site-per-process',
+        '--no-first-run',
+        '--no-service-autorun',
+        '--password-store=basic',
+        ...proxyArg,
+      ],
+    });
+  }
+
+  // Маскировка признаков автоматизации
   await browserContext.addInitScript(() => {
-    Object.defineProperty(navigator, 'webdriver', {
-      get: () => undefined,
-    });
-    if (!window.chrome) {
-      window.chrome = {};
-    }
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    if (!window.chrome) window.chrome = {};
     window.chrome.runtime = window.chrome.runtime || {};
-    Object.defineProperty(navigator, 'plugins', {
-      get: () => [1, 2, 3, 4, 5],
-    });
-    Object.defineProperty(navigator, 'languages', {
-      get: () => ['ru-RU', 'ru', 'en-US', 'en'],
-    });
+    Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+    Object.defineProperty(navigator, 'languages', { get: () => ['ru-RU', 'ru', 'en-US', 'en'] });
   });
 
   const page = browserContext.pages().length > 0 ? browserContext.pages()[0] : await browserContext.newPage();
@@ -145,26 +248,24 @@ async function uploadShorts() {
   let navSuccess = false;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      console.log(`[Uploader] Попытка перехода ${attempt}/3...`);
+      console.log(`[Uploader] Навигация ${attempt}/3...`);
       await page.goto('https://studio.youtube.com/', { waitUntil: 'domcontentloaded', timeout: 45000 });
       await page.waitForTimeout(3000);
       navSuccess = true;
       break;
     } catch (err) {
       console.warn(`[Uploader] Попытка ${attempt} завершилась с ошибкой:`, err.message);
-      if (attempt < 3) {
-        await page.waitForTimeout(4000);
-      } else {
-        throw err;
-      }
+      if (attempt < 3) await page.waitForTimeout(4000);
+      else throw err;
     }
   }
 
   // Проверка редиректа на страницу авторизации
   if (page.url().includes('accounts.google.com')) {
-    console.error('[Uploader] FAILED: Сессия не авторизована в профиле.');
-    console.error('[Uploader] Google требует авторизации. Запустите сначала node init_chrome_profile.mjs');
-    await browserContext.close();
+    console.error('[Uploader] FAILED: Сессия Google не авторизована или срок действия кук истек.');
+    console.error('[Uploader] Пожалуйста, обновите сессию в YOUTUBE_STORAGE_STATE.');
+    if (browser) await browser.close();
+    else await browserContext.close();
     process.exit(1);
   }
 
@@ -172,12 +273,12 @@ async function uploadShorts() {
 
   // 1. Клик по кнопке "Создать"
   const createBtn = page.locator('#create-icon, button:has-text("Создать"), button:has-text("Create")').first();
-  await createBtn.waitFor({ timeout: 20000 });
+  await createBtn.waitFor({ timeout: 25000 });
   await createBtn.click();
   console.log('[Uploader] Нажата кнопка "Создать".');
   await page.waitForTimeout(1000);
 
-  // 2. Клик по пункту "Добавить видео" в выпадающем меню
+  // 2. Клик по пункту "Добавить видео" в меню
   const uploadOption = page.locator('#text-item-0, tp-yt-paper-item:has-text("Добавить видео"), tp-yt-paper-item:has-text("Upload videos")').first();
   await uploadOption.waitFor({ timeout: 10000 });
   await uploadOption.click();
@@ -190,21 +291,21 @@ async function uploadShorts() {
   await fileInput.setInputFiles(videoPath);
   console.log('[Uploader] Видеофайл успешно прикреплен. Ожидание формы ввода метаданных...');
 
-  // 4. Поле заголовка (Title)
+  // 4. Заголовок (Title)
   const titleBox = page.locator('#title-textarea #textbox, [aria-label*="Название"], [aria-label*="title"]').first();
   await titleBox.waitFor({ timeout: 45000 });
   await page.waitForTimeout(2000);
   await titleBox.click();
   await page.keyboard.press('Control+A');
   await page.keyboard.press('Backspace');
-  await page.keyboard.type(title.slice(0, 70));
-  console.log(`[Uploader] Заголовок установлен: "${title.slice(0, 70)}"`);
+  await page.keyboard.type(metadata.title.slice(0, 95));
+  console.log(`[Uploader] Заголовок установлен: "${metadata.title.slice(0, 95)}"`);
 
-  // 5. Поле описания (Description)
+  // 5. Описание (Description)
   const descBox = page.locator('#description-textarea #textbox, [aria-label*="Описание"], [aria-label*="description"]').first();
   if (await descBox.isVisible({ timeout: 5000 }).catch(() => false)) {
     await descBox.click();
-    await page.keyboard.type(description);
+    await page.keyboard.type(metadata.description);
     console.log('[Uploader] Описание заполнено.');
   }
 
@@ -216,16 +317,16 @@ async function uploadShorts() {
     console.log('[Uploader] Установлено: Не для детей.');
   }
 
-  // 7. Добавление тегов (развернуть дополнительные параметры)
+  // 7. Теги (развернуть "Развернуть" / "Show more")
   const showMoreBtn = page.locator('button:has-text("Развернуть"), button:has-text("Show more"), ytcp-button:has-text("Развернуть")').first();
-  if (await showMoreBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+  if (await showMoreBtn.isVisible({ timeout: 4000 }).catch(() => false)) {
     await showMoreBtn.scrollIntoViewIfNeeded();
     await showMoreBtn.click();
     await page.waitForTimeout(1000);
     const tagsInput = page.locator('#tags-container input, input[aria-label*="Теги"]').first();
     if (await tagsInput.isVisible({ timeout: 3000 }).catch(() => false)) {
       await tagsInput.scrollIntoViewIfNeeded();
-      await tagsInput.fill(tags.slice(0, 10).join(', '));
+      await tagsInput.fill(metadata.tags.slice(0, 10).join(', '));
       await tagsInput.press('Enter');
       console.log('[Uploader] Теги добавлены.');
     }
@@ -241,7 +342,7 @@ async function uploadShorts() {
     }
   }
 
-  // 9. Установка видимости: Открытый доступ (Public)
+  // 9. Видимость: Открытый доступ (Public)
   const publicRadio = page.locator('tp-yt-paper-radio-button[name="PUBLIC"], tp-yt-paper-radio-button:has-text("Открытый доступ"), tp-yt-paper-radio-button:has-text("Public")').first();
   await publicRadio.waitFor({ timeout: 12000 });
   await publicRadio.scrollIntoViewIfNeeded();
@@ -265,7 +366,7 @@ async function uploadShorts() {
   // Ожидание завершения запроса
   await page.waitForTimeout(8000);
 
-  // Проверяем ссылку в финальном всплывающем окне
+  // Проверяем ссылку в финальном окне
   const successLink = page.locator('a[href*="youtu.be"], a[href*="shorts"]').first();
   if (await successLink.isVisible({ timeout: 5000 }).catch(() => false)) {
     const href = await successLink.getAttribute('href');
@@ -278,10 +379,15 @@ async function uploadShorts() {
     videoUrl = `https://youtube.com/shorts/${id}`;
   }
 
-  await browserContext.close();
+  if (browser) {
+    await browser.close();
+  } else if (browserContext) {
+    await browserContext.close();
+  }
 
-  console.log(`[Uploader] Финальная ссылка на опубликованный Shorts: ${videoUrl}`);
+  console.log(`[Uploader] ✅ Финальная ссылка на опубликованный Shorts: ${videoUrl}`);
   console.log('STATUS: DONE');
+  return videoUrl;
 }
 
 uploadShorts().catch((err) => {

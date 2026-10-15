@@ -35,3 +35,5 @@ temp_tts_segments/
 chrome-profile/
 out/
 video-shorts/out/
+*storage_state*.json
+storage_state.json

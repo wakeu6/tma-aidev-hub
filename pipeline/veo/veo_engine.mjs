@@ -11,7 +11,8 @@ const vsDir = path.join(rootDir, 'video-shorts');
 
 const cacheDir = path.join(rootDir, 'out', 'veo_cache');
 const publicScenesDir = path.join(vsDir, 'public', 'scenes');
-const ffmpeg = path.join(vsDir, 'node_modules', '@remotion', 'compositor-win32-x64-msvc', 'ffmpeg.exe');
+const winFfmpeg = path.join(vsDir, 'node_modules', '@remotion', 'compositor-win32-x64-msvc', 'ffmpeg.exe');
+const ffmpeg = fs.existsSync(winFfmpeg) ? winFfmpeg : 'ffmpeg';
 
 if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
 if (!fs.existsSync(publicScenesDir)) fs.mkdirSync(publicScenesDir, { recursive: true });

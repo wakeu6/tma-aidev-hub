@@ -1270,8 +1270,10 @@ export async function step2_synthesizeSpeech(trendWithStyle) {
   if (fs.existsSync(tempDir)) fs.rmSync(tempDir, { recursive: true, force: true });
   fs.mkdirSync(tempDir, { recursive: true });
 
-  const ffmpeg = path.join(vsDir, 'node_modules', '@remotion', 'compositor-win32-x64-msvc', 'ffmpeg.exe');
-  const ffprobe = path.join(vsDir, 'node_modules', '@remotion', 'compositor-win32-x64-msvc', 'ffprobe.exe');
+  const winFfmpeg = path.join(vsDir, 'node_modules', '@remotion', 'compositor-win32-x64-msvc', 'ffmpeg.exe');
+  const winFfprobe = path.join(vsDir, 'node_modules', '@remotion', 'compositor-win32-x64-msvc', 'ffprobe.exe');
+  const ffmpeg = fs.existsSync(winFfmpeg) ? winFfmpeg : 'ffmpeg';
+  const ffprobe = fs.existsSync(winFfprobe) ? winFfprobe : 'ffprobe';
 
   const segmentFiles = [];
   const allWordTimings = [];
@@ -1455,6 +1457,14 @@ export async function step2_5_generateSceneImages(dataJson, stylePresetObj) {
   return dataJson;
 }
 
+function getRemotionBin() {
+  const winBin = path.join(vsDir, 'node_modules', '.bin', 'remotion.cmd');
+  const nixBin = path.join(vsDir, 'node_modules', '.bin', 'remotion');
+  if (process.platform === 'win32' && fs.existsSync(winBin)) return winBin;
+  if (fs.existsSync(nixBin)) return nixBin;
+  return 'npx remotion';
+}
+
 /**
  * [Шаг 3] Сборка ролика с фоновой музыкой и субтитрами в out/video.mp4
  */
@@ -1465,7 +1475,7 @@ export async function step3_renderAndMix(dataJson) {
   await ensureMusicLibrary();
 
   // 2. Рендерим Remotion MyComp в промежуточное видео
-  const remotionBin = path.join(vsDir, 'node_modules', '.bin', 'remotion.cmd');
+  const remotionBin = getRemotionBin();
   const rawVideoPath = path.join(outDir, 'video_raw.mp4');
 
   log('Запуск рендера видеоряда через Remotion CLI...', 'STEP 3');
@@ -1517,7 +1527,7 @@ export async function step3_5_validateSync(dataJson, finalVideoPath) {
       fs.writeFileSync(path.join(vsShared, 'data.json'), JSON.stringify(dataJson, null, 2));
 
       // Повторный рендер с точной длиной
-      const remotionBin = path.join(vsDir, 'node_modules', '.bin', 'remotion.cmd');
+      const remotionBin = getRemotionBin();
       const rawVideoPath = path.join(outDir, 'video_raw.mp4');
       execSync(`"${remotionBin}" render src/index.ts MyComp "${rawVideoPath}"`, {
         cwd: vsDir,
@@ -1628,7 +1638,12 @@ export async function runFullPipeline(specifiedCycle = null, requestedStyle = nu
     await step3_5_validateSync(dataWithImages, videoPath);
 
     // Шаг 4: Автономная выгрузка на YouTube Studio
-    const videoUrl = await step4_upload();
+    let videoUrl = 'https://youtube.com/shorts/pending';
+    if (process.env.SKIP_UPLOAD !== 'true') {
+      videoUrl = await step4_upload();
+    } else {
+      log('Пропуск [Шаг 4]: Выгрузка отключена (SKIP_UPLOAD=true). Видео готово в out/video.mp4', 'STEP 4');
+    }
 
     const elapsedMin = ((Date.now() - startTime) / 1000 / 60).toFixed(1);
     log(`Ц И К Л #${cycleNumber} [${activeTrend.stylePresetObj.name}] УСПЕШНО ЗАВЕРШЁН за ${elapsedMin} мин. Видео: ${videoUrl}`, 'SUCCESS');
