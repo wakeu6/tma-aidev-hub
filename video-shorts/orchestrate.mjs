@@ -1154,6 +1154,10 @@ export const VIRAL_TRENDS_POOL = [
  * Получение номера следующего цикла из состояния
  */
 export function getNextCycleNumber() {
+  if (process.env.GITHUB_RUN_NUMBER) {
+    const runNum = parseInt(process.env.GITHUB_RUN_NUMBER, 10);
+    if (!isNaN(runNum) && runNum > 0) return runNum;
+  }
   const statePath = path.join(sharedDir, 'pipeline_state.json');
   try {
     if (fs.existsSync(statePath)) {
@@ -1213,8 +1217,8 @@ export async function step1_generateTrend(runIndex = 0, requestedStyle = null) {
     }
   } catch (_) {}
 
-  // Выбираем валидную тему из пула 2026 (Sonnet 5.5, GPT Astra 6, Flash 3.8)
-  const pool = (TRENDS_POOL_2026 && TRENDS_POOL_2026.length > 0) ? TRENDS_POOL_2026 : VIRAL_TRENDS_POOL;
+  // Объединенный богатый пул тем 2026 года и вирусных форматов (25+ уникальных тем)
+  const pool = [...(TRENDS_POOL_2026 || []), ...(VIRAL_TRENDS_POOL || [])];
   let trend = pool[runIndex % pool.length];
 
   const validation = validateTrend2026(trend, stopList);

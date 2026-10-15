@@ -424,28 +424,66 @@ async function uploadShorts() {
   const linkElem = page.locator('a.ytcp-video-info, a[href*="youtu.be"], a[href*="shorts"]').first();
   if (await linkElem.isVisible({ timeout: 5000 }).catch(() => false)) {
     const href = await linkElem.getAttribute('href');
-    if (href) videoUrl = href;
+    if (href) {
+      videoUrl = href;
+      console.log(`[Uploader] Предварительная ссылка из окна загрузки: ${videoUrl}`);
+    }
+  }
+
+  // Контроль процесса фоновой передачи видеофайла (прогресс-бар загрузки)
+  console.log('[Uploader] Проверка статуса передачи видеофайла в YouTube...');
+  for (let i = 0; i < 20; i++) {
+    const progressElem = page.locator('ytcp-video-upload-progress, .progress-label, span:has-text("Загрузка"), span:has-text("Обработка"), span:has-text("Uploading"), span:has-text("Processing")').first();
+    if (await progressElem.isVisible({ timeout: 1500 }).catch(() => false)) {
+      const progressText = await progressElem.innerText().catch(() => '');
+      if (progressText) {
+        console.log(`[Uploader] Статус передачи: ${progressText.trim()}`);
+      }
+      if (progressText.includes('100%') || progressText.includes('Обработка') || progressText.includes('Processing') || progressText.includes('Проверка') || progressText.includes('Checks') || progressText.includes('завершена') || progressText.includes('complete')) {
+        console.log('[Uploader] Видеофайл полностью передан на сервер YouTube!');
+        break;
+      }
+    } else {
+      break;
+    }
+    await page.waitForTimeout(2000);
   }
 
   // 11. Кнопка Опубликовать / Сохранить
   const doneBtn = page.locator('#done-button, button:has-text("Опубликовать"), ytcp-button:has-text("Опубликовать"), button:has-text("Publish"), button:has-text("Сохранить")').first();
-  await doneBtn.waitFor({ timeout: 12000 });
+  await doneBtn.waitFor({ timeout: 15000 });
   try {
     await doneBtn.click({ force: true });
   } catch (e) {
     await doneBtn.evaluate((el) => el.click()).catch(() => {});
   }
-  console.log('[Uploader] Нажата кнопка публикации.');
+  console.log('[Uploader] Нажата кнопка публикации. Ожидание завершения загрузки и подтверждения публикации...');
 
-  // Ожидание завершения запроса
-  await page.waitForTimeout(8000);
+  // 12. Ожидание диалога подтверждения публикации (ytcp-video-share-dialog)
+  const shareDialog = page.locator('ytcp-video-share-dialog, [dialog-type="SHARE"], ytcp-dialog:has-text("Видео опубликовано"), ytcp-dialog:has-text("Shorts опубликован"), ytcp-dialog:has-text("Video published"), ytcp-dialog:has-text("Short published")').first();
+  try {
+    await shareDialog.waitFor({ state: 'visible', timeout: 90000 });
+    console.log('[Uploader] ✅ YouTube подтвердил публикацию! Открыто финальное окно (Share Dialog).');
+  } catch (e) {
+    console.warn('[Uploader] Финальное окно публикации не появилось за 90с, проверяем альтернативные маркеры...');
+  }
 
-  // Проверяем ссылку в финальном окне
-  const successLink = page.locator('a[href*="youtu.be"], a[href*="shorts"]').first();
+  // Извлечение реальной ссылки из финального диалога
+  const successLink = page.locator('ytcp-video-share-dialog a[href*="youtu.be"], ytcp-video-share-dialog a[href*="shorts"], a[href*="youtu.be"], a[href*="shorts"]').first();
   if (await successLink.isVisible({ timeout: 5000 }).catch(() => false)) {
     const href = await successLink.getAttribute('href');
     if (href && !href.includes('pending')) videoUrl = href;
   }
+
+  // Закрытие окна подтверждения
+  const closeBtn = page.locator('ytcp-video-share-dialog #close-button, ytcp-video-share-dialog ytcp-button:has-text("Закрыть"), ytcp-video-share-dialog button:has-text("Close"), #close-button').first();
+  if (await closeBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+    await closeBtn.click({ force: true }).catch(() => {});
+    console.log('[Uploader] Окно подтверждения закрыто.');
+  }
+
+  // Пауза 5 секунд перед закрытием браузера для фиксации состояния в YouTube
+  await page.waitForTimeout(5000);
 
   // Приведение формата ссылки к https://youtube.com/shorts/<id>
   if (videoUrl.includes('youtu.be/')) {
@@ -453,9 +491,9 @@ async function uploadShorts() {
     videoUrl = `https://youtube.com/shorts/${id}`;
   }
 
-    console.log(`[Uploader] ✅ Финальная ссылка на опубликованный Shorts: ${videoUrl}`);
-    console.log('STATUS: DONE');
-    return videoUrl;
+  console.log(`[Uploader] ✅ Финальная ссылка на опубликованный Shorts: ${videoUrl}`);
+  console.log('STATUS: DONE');
+  return videoUrl;
   } catch (err) {
     console.error('[Uploader] ОШИБКА В ПРОЦЕССЕ ЗАГРУЗКИ:', err.message);
     if (page) {
