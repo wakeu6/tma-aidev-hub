@@ -242,8 +242,10 @@ async function uploadShorts() {
     Object.defineProperty(navigator, 'languages', { get: () => ['ru-RU', 'ru', 'en-US', 'en'] });
   });
 
-  const page = browserContext.pages().length > 0 ? browserContext.pages()[0] : await browserContext.newPage();
-  console.log('[Uploader] Переход на https://studio.youtube.com/...');
+  let page = null;
+  try {
+    page = browserContext.pages().length > 0 ? browserContext.pages()[0] : await browserContext.newPage();
+    console.log('[Uploader] Переход на https://studio.youtube.com/...');
 
   let navSuccess = false;
   for (let attempt = 1; attempt <= 3; attempt++) {
@@ -291,21 +293,51 @@ async function uploadShorts() {
   await fileInput.setInputFiles(videoPath);
   console.log('[Uploader] Видеофайл успешно прикреплен. Ожидание формы ввода метаданных...');
 
+  // Проверка и закрытие возможных всплывающих окон/диалогов подтверждения
+  await page.waitForTimeout(3000);
+  const authDialog = page.locator('ytcp-auth-confirmation-dialog, ytcp-confirmation-dialog, [dialog-type="CONFIRMATION"], [role="dialog"]').first();
+  if (await authDialog.isVisible({ timeout: 4000 }).catch(() => false)) {
+    const dialogText = await authDialog.innerText().catch(() => '');
+    console.log('[Uploader] ВНИМАНИЕ: Обнаружен диалог YouTube:\n' + dialogText.trim());
+
+    const confirmBtn = authDialog.locator('#confirm-button, button:has-text("Продолжить"), button:has-text("Подтвердить"), button:has-text("Понятно"), button:has-text("ОК"), button:has-text("Next"), button:has-text("Continue")').first();
+    if (await confirmBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      console.log('[Uploader] Нажатие кнопки в диалоге...');
+      await confirmBtn.click({ force: true });
+      await page.waitForTimeout(2000);
+    }
+  }
+
   // 4. Заголовок (Title)
   const titleBox = page.locator('#title-textarea #textbox, [aria-label*="Название"], [aria-label*="title"]').first();
   await titleBox.waitFor({ timeout: 45000 });
   await page.waitForTimeout(2000);
-  await titleBox.click();
-  await page.keyboard.press('Control+A');
-  await page.keyboard.press('Backspace');
-  await page.keyboard.type(metadata.title.slice(0, 95));
+  try {
+    await titleBox.click({ force: true });
+    await page.keyboard.press('Control+A');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type(metadata.title.slice(0, 95));
+  } catch (err) {
+    console.warn('[Uploader] Предупреждение при обычном вводе заголовка, используем evaluate:', err.message);
+    await titleBox.evaluate((el, text) => {
+      el.innerText = text;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    }, metadata.title.slice(0, 95));
+  }
   console.log(`[Uploader] Заголовок установлен: "${metadata.title.slice(0, 95)}"`);
 
   // 5. Описание (Description)
   const descBox = page.locator('#description-textarea #textbox, [aria-label*="Описание"], [aria-label*="description"]').first();
   if (await descBox.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await descBox.click();
-    await page.keyboard.type(metadata.description);
+    try {
+      await descBox.click({ force: true });
+      await page.keyboard.type(metadata.description);
+    } catch (err) {
+      await descBox.evaluate((el, text) => {
+        el.innerText = text;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }, metadata.description);
+    }
     console.log('[Uploader] Описание заполнено.');
   }
 
@@ -379,15 +411,26 @@ async function uploadShorts() {
     videoUrl = `https://youtube.com/shorts/${id}`;
   }
 
-  if (browser) {
-    await browser.close();
-  } else if (browserContext) {
-    await browserContext.close();
+    console.log(`[Uploader] ✅ Финальная ссылка на опубликованный Shorts: ${videoUrl}`);
+    console.log('STATUS: DONE');
+    return videoUrl;
+  } catch (err) {
+    console.error('[Uploader] ОШИБКА В ПРОЦЕССЕ ЗАГРУЗКИ:', err.message);
+    if (page) {
+      try {
+        const errorScreenshot = path.join(rootDir, 'out', 'upload_error.png');
+        await page.screenshot({ path: errorScreenshot, fullPage: true });
+        console.log('[Uploader] Скриншот экрана в момент ошибки сохранен в:', errorScreenshot);
+      } catch (e) {}
+    }
+    throw err;
+  } finally {
+    if (browser) {
+      await browser.close().catch(() => {});
+    } else if (browserContext) {
+      await browserContext.close().catch(() => {});
+    }
   }
-
-  console.log(`[Uploader] ✅ Финальная ссылка на опубликованный Shorts: ${videoUrl}`);
-  console.log('STATUS: DONE');
-  return videoUrl;
 }
 
 uploadShorts().catch((err) => {
