@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from .database import init_db
-from .routers import users, rewards, shop, bot_webhook
+from .routers import users, rewards, shop, bot_webhook, news
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
@@ -44,6 +44,7 @@ app.include_router(users.router)
 app.include_router(rewards.router)
 app.include_router(shop.router)
 app.include_router(bot_webhook.router)
+app.include_router(news.router)
 
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def healthcheck():

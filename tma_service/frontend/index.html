@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AI Dev Hub & Marketplace | Telegram Mini App</title>
+  <title>Striver AI Shop • Цифровые товары & Нейросети</title>
   
   <!-- Immediate Telegram WebApp Theme & Setup -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -54,7 +54,7 @@
         <span class="balance-value" id="balanceValue">0</span>
         <span class="balance-currency">PTS</span>
       </div>
-      <div class="balance-hint">Фарми баллы на рекламе Adsgram или оплачивай материалы напрямую</div>
+      <div class="balance-hint">Копи баллы на бонусах или забирай материалы всего за 100 ₽</div>
     </section>
 
     <!-- Navigation Tabs -->
@@ -71,23 +71,27 @@
         <span class="tab-icon">📦</span>
         <span>Покупки</span>
       </button>
+      <button class="nav-tab" data-tab="news">
+        <span class="tab-icon">📰</span>
+        <span>Новости</span>
+      </button>
     </nav>
 
-    <!-- ================= TAB 1: EARN / ADSGRAM / REFERRALS ================= -->
+    <!-- ================= TAB 1: EARN & REFERRALS ================= -->
     <div id="tab-earn" class="tab-content active">
-      <!-- Rewarded Ad Card (Adsgram) -->
+      <!-- Rewarded Ad Card -->
       <section class="card action-card">
         <div class="action-header">
           <div>
-            <h2 class="action-title">Спонсорский ролик</h2>
-            <p class="action-desc">Посмотри короткое видео Adsgram и получи баллы</p>
+            <h2 class="action-title">Спонсорский бонус</h2>
+            <p class="action-desc">Посмотри короткий ролик и получи +100 PTS на баланс</p>
           </div>
           <div class="reward-pill">+100 PTS</div>
         </div>
 
         <button id="watchAdBtn" class="btn btn-primary">
           <span class="btn-icon">▶</span>
-          <span id="watchAdBtnText">Смотреть рекламу</span>
+          <span id="watchAdBtnText">Получить +100 PTS</span>
         </button>
 
         <div id="cooldownTimer" class="cooldown-box hidden">
@@ -114,13 +118,16 @@
         <div class="ref-stats-grid">
           <div class="stat-item">
             <div class="stat-num" id="refCount">0</div>
-            <div class="stat-label">Приглашено</div>
+            <div class="stat-label">Приглашено чел.</div>
           </div>
           <div class="stat-item">
             <div class="stat-num" id="refEarned">0</div>
             <div class="stat-label">Заработано (PTS)</div>
           </div>
         </div>
+
+        <!-- Детализация рефералов -->
+        <div id="referralsDetailList" class="referrals-detail-list" style="margin-top: 14px;"></div>
       </section>
 
       <!-- Leaderboard Card -->
@@ -138,8 +145,8 @@
     <!-- ================= TAB 2: MARKETPLACE ================= -->
     <div id="tab-market" class="tab-content">
       <div class="market-header">
-        <h2 class="section-title">AI Маркетплейс</h2>
-        <p class="section-subtitle">Забирай за накопленные PTS или покупай через Stars / СБП</p>
+        <h2 class="section-title">Цифровой Маркет</h2>
+        <p class="section-subtitle">Любой материал всего за 100 ₽ или бесплатно за накопленные PTS</p>
       </div>
       <div id="productsGrid" class="products-grid">
         <div class="loading-placeholder">Загрузка каталога товаров...</div>
@@ -149,7 +156,7 @@
     <!-- ================= TAB 3: INVENTORY / PURCHASES ================= -->
     <div id="tab-inventory" class="tab-content">
       <div class="market-header">
-        <h2 class="section-title">Мои приобретенные материалы</h2>
+        <h2 class="section-title">Мои покупки</h2>
         <p class="section-subtitle">Все купленные промпты, исходники и ключи доступа всегда под рукой</p>
       </div>
       <div id="purchasesList" class="purchases-list">
@@ -157,9 +164,20 @@
       </div>
     </div>
 
+    <!-- ================= TAB 4: AI NEWS & DIGEST ================= -->
+    <div id="tab-news" class="tab-content">
+      <div class="market-header">
+        <h2 class="section-title">📰 AI Новости & Тренды</h2>
+        <p class="section-subtitle">Свежие инсайды, релизы и вирусные схемы недели</p>
+      </div>
+      <div id="newsGrid" class="news-grid">
+        <div class="loading-placeholder">Загрузка свежих новостей...</div>
+      </div>
+    </div>
+
     <!-- Footer -->
     <footer class="footer">
-      <span>AI Developer Ecosystem 2026 • Adsgram & Telegram Mini App</span>
+      <span>Striver AI Shop © 2026 • Цифровые инструменты и нейросети</span>
     </footer>
 
   </div>
@@ -186,12 +204,12 @@
     </div>
   </div>
 
-  <!-- Simulated Ad Player Modal (Mock Mode) -->
+  <!-- Simulated Ad Player Modal -->
   <div id="adModal" class="ad-modal hidden">
     <div class="ad-modal-content">
-      <div class="ad-modal-badge">ADSGRAM REWARDED // SIMULATOR</div>
+      <div class="ad-modal-badge">⚡ СПОНСОРСКИЙ РОЛИК</div>
       <h3 class="ad-modal-title">Спонсорский показ</h3>
-      <p class="ad-modal-desc">Идет воспроизведение спонсорского видеоролика...</p>
+      <p class="ad-modal-desc">Идет воспроизведение короткого ролика...</p>
       
       <div class="ad-progress-bar">
         <div id="adProgressFill" class="ad-progress-fill"></div>

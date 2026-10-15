@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timezone
 from fastapi import APIRouter, Request, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func, desc
 from ..database import get_db
 from ..models import User, Referral
 from ...bot.messages import WELCOME_MESSAGE, HELP_MESSAGE
@@ -16,7 +16,7 @@ async def telegram_webhook(
 ):
     """
     Высокопроизводительный вебхук для Telegram Bot API.
-    Обрабатывает входящие команды (/start, /help, реферальные ссылки)
+    Обрабатывает входящие команды (/start, /help, /news, /profile, реферальные ссылки, callback кнопки)
     и отвечает мгновенно в теле HTTP-ответа (Webhook Reply Method).
     Работает со 100% аптаймом без необходимости исходящего long polling.
     """
@@ -25,13 +25,25 @@ async def telegram_webhook(
     except Exception:
         return {"ok": True}
 
+    callback_query = data.get("callback_query")
     message = data.get("message")
-    if not message:
-        return {"ok": True}
 
-    chat_id = message.get("chat", {}).get("id")
-    from_user = message.get("from", {})
-    text = (message.get("text") or "").strip()
+    if callback_query:
+        chat_id = callback_query.get("message", {}).get("chat", {}).get("id")
+        from_user = callback_query.get("from", {})
+        data_action = callback_query.get("data", "")
+        if data_action == "cmd_news":
+            text = "/news"
+        elif data_action == "cmd_profile":
+            text = "/profile"
+        else:
+            text = "/start"
+    elif message:
+        chat_id = message.get("chat", {}).get("id")
+        from_user = message.get("from", {})
+        text = (message.get("text") or "").strip()
+    else:
+        return {"ok": True}
 
     if not chat_id or not from_user:
         return {"ok": True}
@@ -52,14 +64,18 @@ async def telegram_webhook(
         "inline_keyboard": [
             [
                 {
-                    "text": "🚀 Открыть Mini App & Фармить",
+                    "text": "⚡ Открыть Striver Shop (100 ₽ / PTS)",
                     "web_app": {"url": webapp_url}
                 }
             ],
             [
                 {
-                    "text": "📢 Наш канал",
-                    "url": "https://t.me/telegram"
+                    "text": "📰 AI Новости",
+                    "callback_data": "cmd_news"
+                },
+                {
+                    "text": "👤 Мой профиль",
+                    "callback_data": "cmd_profile"
                 }
             ]
         ]
@@ -117,6 +133,59 @@ async def telegram_webhook(
             "reply_markup": reply_markup,
         }
 
+    # Обработка команды /news или /digest
+    if text.startswith("/news") or text.startswith("/digest"):
+        from ..models import NewsPost
+        stmt_news = select(NewsPost).order_by(desc(NewsPost.created_at)).limit(3)
+        res_news = await db.execute(stmt_news)
+        posts = res_news.scalars().all()
+
+        news_text = "📰 <b>Свежий AI Дайджест и Тренды Shorts:</b>\n\n"
+        for p in posts:
+            news_text += f"<b>{p.title}</b>\n{p.summary}\n\n"
+        news_text += "👉 <i>Все исходники и шаблоны доступны в нашем маркете!</i>"
+
+        return {
+            "method": "sendMessage",
+            "chat_id": chat_id,
+            "text": news_text,
+            "parse_mode": "HTML",
+            "reply_markup": reply_markup,
+        }
+
+    # Обработка команды /profile
+    if text.startswith("/profile"):
+        stmt = select(User).where(User.tg_id == tg_id)
+        res = await db.execute(stmt)
+        user = res.scalar_one_or_none()
+        balance = user.balance if user else 100
+        ref_code = user.referral_code if user else "ref"
+
+        ref_stmt = select(func.count(Referral.id)).where(Referral.referrer_id == tg_id)
+        ref_res = await db.execute(ref_stmt)
+        ref_count = ref_res.scalar() or 0
+
+        profile_text = f"""
+👤 <b>Ваш профиль:</b>
+
+• Имя: <b>{first_name}</b>
+• Баланс: <b>{balance} PTS</b>
+• Приглашено друзей: <b>{ref_count} чел.</b>
+• Заработано на рефералах: <b>{ref_count * 250} PTS</b>
+
+🔗 <b>Ваша реферальная ссылка:</b>
+<code>https://t.me/aidev_shorts_bot?start=ref_{ref_code}</code>
+
+<i>Делитесь ссылкой с коллегами: они получат 100 PTS, а вы — 250 PTS за каждого!</i>
+"""
+        return {
+            "method": "sendMessage",
+            "chat_id": chat_id,
+            "text": profile_text,
+            "parse_mode": "HTML",
+            "reply_markup": reply_markup,
+        }
+
     # Обработка команды /help
     if text.startswith("/help"):
         return {
@@ -131,7 +200,7 @@ async def telegram_webhook(
     return {
         "method": "sendMessage",
         "chat_id": chat_id,
-        "text": f"Привет, <b>{first_name}</b>!\n\nНажми кнопку ниже, чтобы открыть Mini App, фармить поинты и забирать исходники:",
+        "text": f"Привет, <b>{first_name}</b>!\n\nНажми кнопку ниже, чтобы открыть маркет, фармить поинты и забирать готовые материалы всего за 100 ₽ или бесплатно за PTS:",
         "parse_mode": "HTML",
         "reply_markup": reply_markup,
     }

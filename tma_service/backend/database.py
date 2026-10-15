@@ -50,4 +50,6 @@ async def init_db():
     
     async with AsyncSessionLocal() as session:
         from .models import seed_products
+        from .news_service import seed_news
         await seed_products(session)
+        await seed_news(session)

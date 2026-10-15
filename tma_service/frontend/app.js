@@ -72,6 +72,13 @@
       'Content-Type': 'application/json',
     };
 
+    if (tg?.initDataUnsafe?.user) {
+      const u = tg.initDataUnsafe.user;
+      headers['X-Telegram-User-Id'] = String(u.id);
+      headers['X-Telegram-Username'] = u.username || '';
+      headers['X-Telegram-First-Name'] = u.first_name || '';
+    }
+
     if (isInsideTelegram && tg.initData) {
       headers['X-Telegram-Init-Data'] = tg.initData;
       headers['Authorization'] = `tma ${tg.initData}`;
@@ -114,7 +121,7 @@
         elEnvBadge.style.borderColor = 'rgba(0, 240, 255, 0.4)';
       }
       if (elStatusText) elStatusText.textContent = 'Гость / Модерация';
-      // Панель мока скрыта для чистого внешнего вида при проверке Adsgram
+      // Панель мока скрыта для чистого внешнего вида
       if (elDevMockPanel) elDevMockPanel.classList.add('hidden');
     }
   }
@@ -131,9 +138,18 @@
       }
 
       currentUser = await response.json();
+
+      // Проверка и синхронизация локального кэша баланса для защиты от сброса при перезапуске сервера
+      const cacheKey = 'striver_balance_' + (currentUser.tg_id || 'guest');
+      const cachedBalance = localStorage.getItem(cacheKey);
+      if (cachedBalance && Number(cachedBalance) > Number(currentUser.balance)) {
+        currentUser.balance = Number(cachedBalance);
+      }
+
       renderUserProfile(currentUser);
       await checkRewardCooldown();
       await loadLeaderboard();
+      await loadReferralsDetail();
     } catch (err) {
       console.error('[TMA] Ошибка:', err.message);
       showToast('Сбой синхронизации с сервером');
@@ -152,8 +168,13 @@
       elBalanceValue.textContent = Number(user.balance).toLocaleString('ru-RU');
     }
 
+    // Сохраняем актуальный баланс в локальный кэш
+    if (user.tg_id) {
+      localStorage.setItem('striver_balance_' + user.tg_id, String(user.balance));
+    }
+
     if (elRefLinkInput) {
-      elRefLinkInput.value = user.referral_link || 'https://t.me/AIBot?start=ref_xxx';
+      elRefLinkInput.value = user.referral_link || 'https://t.me/aidev_shorts_bot?start=ref_xxx';
     }
 
     if (elRefCount) {
@@ -455,6 +476,10 @@
       loadMarketProducts();
     } else if (targetTab === 'inventory') {
       loadPurchases();
+    } else if (targetTab === 'news') {
+      loadNews();
+    } else if (targetTab === 'earn') {
+      loadReferralsDetail();
     }
   }
 
@@ -688,6 +713,66 @@
 
   window.__tma_view_content = viewPurchasedItem;
 
+  // 10. AI News & Digest Logic
+  const elNewsGrid = document.getElementById('newsGrid');
+  const elReferralsDetailList = document.getElementById('referralsDetailList');
+
+  async function loadNews() {
+    if (!elNewsGrid) return;
+    try {
+      const res = await fetch('/api/news', { headers: getApiHeaders() });
+      if (!res.ok) throw new Error('Ошибка загрузки новостей');
+      const data = await res.json();
+      const newsItems = data.news || [];
+
+      if (newsItems.length === 0) {
+        elNewsGrid.innerHTML = '<div class="loading-placeholder">Лента новостей обновляется...</div>';
+        return;
+      }
+
+      elNewsGrid.innerHTML = newsItems.map(item => `
+        <div class="news-card">
+          <span class="news-tag">${item.source_tag || 'AI TRENDS'}</span>
+          <h3 class="news-title">${item.title}</h3>
+          <p class="news-desc">${item.summary}</p>
+          <div class="news-footer">
+            <span>⚡ Striver AI Digest</span>
+            <span>${item.created_at ? new Date(item.created_at).toLocaleDateString('ru-RU') : 'Сегодня'}</span>
+          </div>
+        </div>
+      `).join('');
+    } catch (e) {
+      console.error('[News]', e);
+      elNewsGrid.innerHTML = '<div class="loading-placeholder">Сбой загрузки новостей</div>';
+    }
+  }
+
+  async function loadReferralsDetail() {
+    if (!elReferralsDetailList) return;
+    try {
+      const res = await fetch('/api/users/referrals', { headers: getApiHeaders() });
+      if (!res.ok) return;
+      const data = await res.json();
+      const items = data.items || [];
+
+      if (items.length === 0) {
+        elReferralsDetailList.innerHTML = `
+          <div style="font-size: 11px; color: var(--text-dim); text-align: center; padding: 6px;">
+            У вас пока нет приглашенных друзей. Поделитесь ссылкой выше!
+          </div>
+        `;
+        return;
+      }
+
+      elReferralsDetailList.innerHTML = items.map(item => `
+        <div class="ref-detail-item">
+          <span class="ref-detail-name">👤 ${item.name} (${item.date || 'Недавно'})</span>
+          <span class="ref-detail-reward">+${item.bonus_awarded || 250} PTS</span>
+        </div>
+      `).join('');
+    } catch (_) {}
+  }
+
   // Event Listeners
   if (elWatchAdBtn) {
     elWatchAdBtn.addEventListener('click', handleWatchAd);
@@ -703,6 +788,8 @@
   setupDevMockPanel();
   loadUserProfile();
   loadMarketProducts();
+  loadNews();
 
 })();
+
 
