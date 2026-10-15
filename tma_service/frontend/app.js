@@ -212,7 +212,7 @@
   // Adsgram Controller State
   let adsgramController = null;
   function initAdsgramController() {
-    const adsgramBlockId = window.ADSGRAM_BLOCK_ID || '53898';
+    const adsgramBlockId = window.ADSGRAM_BLOCK_ID || '54057';
     if (window.Adsgram && adsgramBlockId && adsgramBlockId !== 'mock_block_id') {
       try {
         adsgramController = window.Adsgram.init({ blockId: adsgramBlockId });
@@ -229,7 +229,7 @@
     isWatchingAd = true;
     triggerHaptic('medium');
 
-    const adsgramBlockId = window.ADSGRAM_BLOCK_ID || '53898';
+    const adsgramBlockId = window.ADSGRAM_BLOCK_ID || '54057';
 
     if (window.Adsgram) {
       try {

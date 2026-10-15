@@ -14,4 +14,4 @@ services:
       - key: WEBAPP_URL
         sync: false
       - key: ADSGRAM_BLOCK_ID
-        value: "53898"
+        value: "54057"
